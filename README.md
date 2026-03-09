@@ -34,9 +34,7 @@ npm run dev
 
 ---
 
-## Docker 部署（最新版，image-first）
-
-> 目标：只维护一个配置目录，不需要下载源码来编辑深层配置。
+## Docker 部署
 
 ### 配置目录
 
@@ -52,6 +50,8 @@ npm run dev
 
 ```bash
 cp deploy/config/app.env.example deploy/config/app.env
+cp deploy/config/features.yaml.example deploy/config/features.yaml
+cp deploy/config/services.yaml.example deploy/config/services.yaml
 ```
 
 然后按需修改 `deploy/config/*`。
@@ -84,16 +84,15 @@ docker compose restart app
 
 ## 配置说明
 
-详见：`docs/configuration-guide.md`
+详见：[docs/configuration-guide.md](docs/configuration-guide.md)
 
 ---
 
 ## 生产建议
 
 - 使用强随机 `LOGTO_COOKIE_SECRET`
-- 生产环境使用 HTTPS
+- 生产环境使用反向代理开启 HTTPS
 - 最小化 M2M 权限
-- 镜像按版本 tag 管理
 
 ---
 

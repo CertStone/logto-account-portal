@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: account-center:latest
+    # image: account-center:latest
     ports:
       - "1742:3000"
     environment:
