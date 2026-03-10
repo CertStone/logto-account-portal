@@ -3,12 +3,20 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, LayoutGrid } from "lucide-react";
 import { getLogtoContext } from "@/lib/logto";
 
+export const dynamic = "force-dynamic";
+
 export default async function PortalLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { isAuthenticated } = await getLogtoContext();
+  let isAuthenticated = false;
+  try {
+    const context = await getLogtoContext();
+    isAuthenticated = Boolean(context?.isAuthenticated);
+  } catch {
+    isAuthenticated = false;
+  }
   const accountCenterHref = isAuthenticated ? "/dashboard" : "/sign-in";
 
   return (

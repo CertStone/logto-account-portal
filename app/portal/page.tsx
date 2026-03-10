@@ -21,6 +21,13 @@ interface ServiceHealth {
   lastChecked?: Date;
 }
 
+interface CachedHealthItem {
+  serviceId: string;
+  status: "unknown" | "online" | "offline";
+  latency?: number;
+  checkedAt: string;
+}
+
 export default function PortalPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [serviceHealth, setServiceHealth] = useState<Record<string, ServiceHealth>>({});
@@ -66,50 +73,8 @@ export default function PortalPage() {
     });
   }, [searchQuery, runtimeServices, categoryNameById]);
 
-  // 检查单个服务状态
-  const checkServiceHealth = useCallback(async (serviceId: string, groupName: string, serviceName: string) => {
-    setServiceHealth((prev) => ({
-      ...prev,
-      [serviceId]: { status: "checking" },
-    }));
-
-    const startTime = Date.now();
-    try {
-      // 使用 fetch 检查服务状态，设置较短的超时
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-      const response = await fetch(
-        `/api/health-check?groupName=${encodeURIComponent(groupName)}&serviceName=${encodeURIComponent(serviceName)}`,
-        {
-          signal: controller.signal,
-        }
-      );
-
-      clearTimeout(timeoutId);
-      const latency = Date.now() - startTime;
-
-      if (response.ok) {
-        setServiceHealth((prev) => ({
-          ...prev,
-          [serviceId]: { status: "online", latency, lastChecked: new Date() },
-        }));
-      } else {
-        setServiceHealth((prev) => ({
-          ...prev,
-          [serviceId]: { status: "offline", latency, lastChecked: new Date() },
-        }));
-      }
-    } catch {
-      setServiceHealth((prev) => ({
-        ...prev,
-        [serviceId]: { status: "offline", lastChecked: new Date() },
-      }));
-    }
-  }, []);
-
-  // 检查所有服务状态
-  const checkAllServices = useCallback(() => {
+  // 从服务端缓存读取服务状态
+  const checkAllServices = useCallback(async () => {
     if (typeof navigator !== "undefined" && !navigator.onLine) {
       setServiceHealth((prev) => {
         const next = { ...prev };
@@ -124,13 +89,29 @@ export default function PortalPage() {
       return;
     }
 
-    runtimeServices.forEach((service) => {
-      const groupName = categoryNameById.get(service.category);
-      if (groupName) {
-        checkServiceHealth(service.id, groupName, service.name);
+    try {
+      const response = await fetch("/api/health-check", { cache: "no-store" });
+      if (!response.ok) {
+        return;
       }
-    });
-  }, [runtimeServices, categoryNameById, checkServiceHealth]);
+
+      const payload = (await response.json()) as { items?: CachedHealthItem[] };
+      const items = payload.items ?? [];
+
+      const next: Record<string, ServiceHealth> = {};
+      for (const item of items) {
+        next[item.serviceId] = {
+          status: item.status,
+          latency: item.latency,
+          lastChecked: item.checkedAt ? new Date(item.checkedAt) : undefined,
+        };
+      }
+
+      setServiceHealth((prev) => ({ ...prev, ...next }));
+    } catch {
+      // 忽略缓存读取失败，保留现有状态
+    }
+  }, [runtimeServices]);
 
   // 页面加载时检查服务状态
   useEffect(() => {
@@ -138,14 +119,18 @@ export default function PortalPage() {
       return;
     }
 
-    checkAllServices();
+    void checkAllServices();
     // 每 60 秒自动刷新一次
-    const interval = setInterval(checkAllServices, 60000);
+    const interval = setInterval(() => {
+      void checkAllServices();
+    }, 60000);
     return () => clearInterval(interval);
   }, [checkAllServices, runtimeServices]);
 
   useEffect(() => {
-    const onOnline = () => checkAllServices();
+    const onOnline = () => {
+      void checkAllServices();
+    };
     window.addEventListener("online", onOnline);
     return () => window.removeEventListener("online", onOnline);
   }, [checkAllServices]);
