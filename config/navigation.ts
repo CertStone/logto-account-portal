@@ -34,6 +34,11 @@ export const mainNavItems: NavItem[] = [
     title: "社交连接",
     icon: Link2,
   },
+  {
+    href: "/dashboard/settings",
+    title: "偏好设置",
+    icon: Settings,
+  },
 ];
 
 export const auxiliaryNavItems: NavItem[] = [
@@ -41,11 +46,6 @@ export const auxiliaryNavItems: NavItem[] = [
     href: "/portal",
     title: "服务门户",
     icon: LayoutDashboard,
-  },
-  {
-    href: "/dashboard/settings",
-    title: "偏好设置",
-    icon: Settings,
   },
 ];
 

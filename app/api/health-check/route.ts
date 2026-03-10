@@ -3,6 +3,28 @@ import { serviceCategories, services } from "@/config/services";
 import { HealthCheckQuerySchema } from "@/lib/schemas";
 import { logger } from "@/lib/logger";
 
+function isExpectedNetworkError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const anyError = error as Error & { code?: string; cause?: unknown };
+  const code = anyError.code;
+  const causeCode =
+    typeof anyError.cause === "object" && anyError.cause && "code" in anyError.cause
+      ? String((anyError.cause as { code?: string }).code)
+      : undefined;
+
+  const normalizedMessage = error.message.toLowerCase();
+  const expectedCodes = new Set(["ENOTFOUND", "EAI_AGAIN", "ETIMEDOUT", "ECONNREFUSED", "ECONNRESET"]);
+
+  if ((code && expectedCodes.has(code)) || (causeCode && expectedCodes.has(causeCode))) {
+    return true;
+  }
+
+  return normalizedMessage.includes("fetch failed") || normalizedMessage.includes("network");
+}
+
 /**
  * 健康检查代理
  * GET /api/health-check?groupName=公开服务&serviceName=Gotify%20推送
@@ -69,7 +91,14 @@ export async function GET(request: Request) {
       latency,
     });
   } catch (error) {
-    logger.debug(`Health check failed for ${service.id}:`, error);
+    if (!isExpectedNetworkError(error)) {
+      logger.debug("Health check failed unexpectedly", {
+        serviceId: service.id,
+        groupName,
+        serviceName,
+        error,
+      });
+    }
 
     // 超时或网络错误
     return NextResponse.json(

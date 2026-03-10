@@ -9,6 +9,7 @@ import { Search, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePublicConfig } from "@/hooks/use-public-config";
 import type { Service, ServiceCategory } from "@/config/types";
+import Link from "next/link";
 
 // 服务状态类型
 type ServiceStatus = "unknown" | "online" | "offline" | "checking";
@@ -107,6 +108,20 @@ export default function PortalPage() {
 
   // 检查所有服务状态
   const checkAllServices = useCallback(() => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setServiceHealth((prev) => {
+        const next = { ...prev };
+        runtimeServices.forEach((service) => {
+          next[service.id] = {
+            status: "offline",
+            lastChecked: new Date(),
+          };
+        });
+        return next;
+      });
+      return;
+    }
+
     runtimeServices.forEach((service) => {
       const groupName = categoryNameById.get(service.category);
       if (groupName) {
@@ -126,6 +141,12 @@ export default function PortalPage() {
     const interval = setInterval(checkAllServices, 60000);
     return () => clearInterval(interval);
   }, [checkAllServices, runtimeServices]);
+
+  useEffect(() => {
+    const onOnline = () => checkAllServices();
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, [checkAllServices]);
 
   const hasSearch = searchQuery.trim().length > 0;
   const hasPopular = runtimeServices.some((s) => s.isPopular);
@@ -152,6 +173,11 @@ export default function PortalPage() {
         <p className="mt-2 text-muted-foreground">
           一站式访问您所有的工作和生活服务
         </p>
+        <div className="mt-4">
+          <Link href="/dashboard">
+            <Button variant="outline" size="sm">进入账户中心</Button>
+          </Link>
+        </div>
 
         {/* Search */}
         <div className="mx-auto mt-6 max-w-md">

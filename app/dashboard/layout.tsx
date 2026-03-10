@@ -2,6 +2,7 @@ import { getLogtoContext, getAccountInfo, signOut } from "@/app/logto";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Navbar } from "@/components/layout/navbar";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -13,14 +14,14 @@ export default async function DashboardLayout({
   const { isAuthenticated, claims } = await getLogtoContext();
 
   if (!isAuthenticated) {
-    redirect("/");
+    redirect("/sign-in");
   }
 
   let accountInfo = null;
   try {
     accountInfo = await getAccountInfo();
   } catch (error) {
-    console.error("Failed to get account info:", error);
+    logger.error("Failed to get account info", error);
   }
 
   const user = {
