@@ -82,3 +82,6 @@ export type {
 
 // Config
 export { logtoConfig, validateLogtoConfig } from "./config";
+
+// Error types
+export { LogtoApiError } from "./fetch-with-auth";

@@ -35,14 +35,26 @@ export interface SocialIdentityData {
 }
 
 export interface SSOIdentityData {
-  id: string;
-  userId: string;
-  issuer: string;
-  identityId: string;
-  detail: Record<string, unknown>;
-  target: string;
-  createdAt: number;
-  updatedAt: number;
+  ssoIdentity: {
+    tenantId: string;
+    id: string;
+    userId: string;
+    issuer: string;
+    identityId: string;
+    detail: Record<string, unknown>;
+    createdAt: number;
+    updatedAt: number;
+    ssoConnectorId: string;
+  };
+  ssoConnectorId: string;
+  tokenSecret?: {
+    tenantId: string;
+    id: string;
+    userId: string;
+    type: string;
+    metadata: Record<string, unknown>;
+    target: string;
+  };
 }
 
 export interface AllIdentitiesResponse {

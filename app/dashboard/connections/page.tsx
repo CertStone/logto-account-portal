@@ -34,6 +34,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslations } from "@/lib/i18n/client";
 
 type SocialIdentity = {
   target: string;
@@ -118,6 +119,7 @@ export default function ConnectionsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const { t } = useTranslations();
   const [identities, setIdentities] = useState<{
     socialIdentities: SocialIdentity[];
     ssoIdentities: unknown[];
@@ -137,7 +139,7 @@ export default function ConnectionsPage() {
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        throw new Error(data.error || "无法加载社交账号信息");
+        throw new Error(data.error || t("toast.loadErrorDesc"));
       }
 
       setIdentities({
@@ -149,13 +151,13 @@ export default function ConnectionsPage() {
       console.error("Failed to fetch social data:", error);
       toast({
         variant: "destructive",
-        title: "加载失败",
-        description: error instanceof Error ? error.message : "无法加载社交账号信息",
+        title: t("toast.loadError"),
+        description: error instanceof Error ? error.message : t("toast.loadErrorDesc"),
       });
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, t]);
 
   useEffect(() => {
     fetchData();
@@ -164,21 +166,24 @@ export default function ConnectionsPage() {
   useEffect(() => {
     if (searchParams.get("show_success") === "social") {
       toast({
-        title: "绑定成功",
-        description: "社交账号已成功绑定",
+        title: t("connections.bindSuccess"),
+        description: t("connections.bindSuccessDesc"),
       });
 
       const url = new URL(window.location.href);
       url.searchParams.delete("show_success");
       window.history.replaceState({}, "", url.toString());
     }
-  }, [searchParams, toast]);
+  }, [searchParams, toast, t]);
 
   const handleConnectSocial = (target: string) => {
     router.push(`/dashboard/connections/social/${encodeURIComponent(target)}`);
   };
 
   const handleUnlinkSocial = async () => {
+    // Capture name before clearing dialog state — the closure would still hold
+    // the old value, but being explicit avoids subtle bugs if code is refactored.
+    const nameToShow = unlinkDialog.name;
     setUnlinking(true);
 
     try {
@@ -190,15 +195,15 @@ export default function ConnectionsPage() {
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        throw new Error(data.error || "解绑失败");
+        throw new Error(data.error || t("toast.unlinkError"));
       }
 
       setUnlinkDialog({ open: false, target: "", name: "" });
       await fetchData();
 
       toast({
-        title: "解绑成功",
-        description: `已成功解绑 ${unlinkDialog.name} 账号`,
+        title: t("connections.unlinkSuccess"),
+        description: t("connections.unlinkSuccessDesc", { name: nameToShow }),
       });
     } catch (error) {
       console.error("Unlink error:", error);
@@ -206,8 +211,8 @@ export default function ConnectionsPage() {
 
       toast({
         variant: "destructive",
-        title: "解绑失败",
-        description: error instanceof Error ? error.message : "未知错误",
+        title: t("toast.unlinkError"),
+        description: error instanceof Error ? error.message : t("toast.unknownError"),
       });
     }
   };
@@ -217,7 +222,7 @@ export default function ConnectionsPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">加载中...</p>
+          <p className="text-muted-foreground">{t("common.loading")}</p>
         </div>
       </div>
     );
@@ -231,15 +236,15 @@ export default function ConnectionsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">社交连接</h1>
-        <p className="text-muted-foreground">绑定第三方账号，实现快捷登录</p>
+        <h1 className="text-2xl font-bold tracking-tight">{t("connections.title")}</h1>
+        <p className="text-muted-foreground">{t("connections.description")}</p>
       </div>
 
       <Alert>
         <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>注意</AlertTitle>
+        <AlertTitle>{t("connections.note")}</AlertTitle>
         <AlertDescription>
-          解绑社交账号后，您将无法使用该账号登录。请确保您有其他登录方式。
+          {t("connections.warning")}
         </AlertDescription>
       </Alert>
 
@@ -248,9 +253,9 @@ export default function ConnectionsPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-green-500" />
-              <CardTitle>已绑定的账号</CardTitle>
+              <CardTitle>{t("connections.connected")}</CardTitle>
             </div>
-            <CardDescription>您可以使用这些账号快捷登录</CardDescription>
+            <CardDescription>{t("connections.connectedDesc")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {identities.socialIdentities.map((identity, idx) => {
@@ -282,7 +287,7 @@ export default function ConnectionsPage() {
                     <div className="flex items-center gap-2">
                       <Badge variant="default" className="gap-1">
                         <CheckCircle className="h-3 w-3" />
-                        已连接
+                        {t("connections.connectedBadge")}
                       </Badge>
                       <Button
                         variant="outline"
@@ -295,7 +300,7 @@ export default function ConnectionsPage() {
                           })
                         }
                       >
-                        解绑
+                        {t("connections.unlink")}
                       </Button>
                     </div>
                   </div>
@@ -314,9 +319,9 @@ export default function ConnectionsPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Link2 className="h-5 w-5 text-muted-foreground" />
-              <CardTitle>可绑定的账号</CardTitle>
+              <CardTitle>{t("connections.available")}</CardTitle>
             </div>
-            <CardDescription>绑定更多账号，提供更多登录方式</CardDescription>
+            <CardDescription>{t("connections.availableDesc")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {unconnectedConnectors.map((connector, idx) => {
@@ -334,12 +339,12 @@ export default function ConnectionsPage() {
                       <div>
                         <p className="font-medium">{connector.name}</p>
                         <p className="text-sm text-muted-foreground">
-                          {connector.description || `绑定您的 ${connector.name} 账号`}
+                          {connector.description || t("connections.bindAccount", { name: connector.name })}
                         </p>
                       </div>
                     </div>
                     <Button size="sm" onClick={() => handleConnectSocial(connector.target)}>
-                      绑定
+                      {t("connections.bind")}
                     </Button>
                   </div>
                   {idx < unconnectedConnectors.length - 1 && <Separator className="mt-4" />}
@@ -348,7 +353,7 @@ export default function ConnectionsPage() {
             })}
 
             {unconnectedConnectors.length === 0 && (
-              <p className="text-center text-muted-foreground">所有可用的社交账号已绑定</p>
+              <p className="text-center text-muted-foreground">{t("connections.allConnected")}</p>
             )}
           </CardContent>
         </Card>
@@ -356,21 +361,21 @@ export default function ConnectionsPage() {
 
       <Card className="bg-muted/50">
         <CardHeader>
-          <CardTitle className="text-base">关于社交登录</CardTitle>
+          <CardTitle className="text-base">{t("connections.about.title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <ul className="space-y-2 text-sm text-muted-foreground">
             <li className="flex items-start gap-2">
               <ExternalLink className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>绑定后，您可以使用社交账号直接登录，无需输入密码</span>
+              <span>{t("connections.about.quickLogin")}</span>
             </li>
             <li className="flex items-start gap-2">
               <ExternalLink className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>您的社交账号信息仅用于身份验证，我们不会获取额外的权限</span>
+              <span>{t("connections.about.privacy")}</span>
             </li>
             <li className="flex items-start gap-2">
               <ExternalLink className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>您可以随时解绑社交账号，但请确保至少保留一种登录方式</span>
+              <span>{t("connections.about.control")}</span>
             </li>
           </ul>
         </CardContent>
@@ -378,14 +383,15 @@ export default function ConnectionsPage() {
 
       <Dialog
         open={unlinkDialog.open}
-        onOpenChange={(open) => !unlinking && setUnlinkDialog({ ...unlinkDialog, open })}
+        onOpenChange={(open) => {
+          if (!unlinking) setUnlinkDialog((prev) => ({ ...prev, open }));
+        }}
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>确认解绑社交账号</DialogTitle>
+            <DialogTitle>{t("connections.confirmUnlink")}</DialogTitle>
             <DialogDescription>
-              您确定要解绑 <span className="font-semibold">{unlinkDialog.name}</span> 账号吗？
-              解绑后您将无法使用该账号登录。
+              {t("connections.confirmUnlinkDesc", { name: unlinkDialog.name })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -394,11 +400,11 @@ export default function ConnectionsPage() {
               disabled={unlinking}
               onClick={() => setUnlinkDialog({ open: false, target: "", name: "" })}
             >
-              取消
+              {t("common.cancel")}
             </Button>
             <Button variant="destructive" onClick={handleUnlinkSocial} disabled={unlinking}>
               {unlinking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              确认解绑
+              {t("connections.confirmUnlink")}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -6,6 +6,7 @@
 import { logger } from "@/lib/logger";
 import { logtoConfig } from "./config";
 import { getAccessTokenRSC } from "./client";
+import { fetchJsonWithAuth, fetchVoidWithAuth } from "./fetch-with-auth";
 import type {
   AccountInfo,
   VerificationResponse,
@@ -23,16 +24,11 @@ const API_BASE = () => logtoConfig.endpoint;
  */
 export async function getAccountInfo(): Promise<AccountInfo> {
   const accessToken = await getAccessTokenRSC();
-  const res = await fetch(`${API_BASE()}/api/my-account`, {
-    headers: { authorization: `Bearer ${accessToken}` },
+  return fetchJsonWithAuth<AccountInfo>({
+    url: `${API_BASE()}/api/my-account`,
+    accessToken,
+    operationName: "获取账户信息",
   });
-
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "Unknown error");
-    throw new Error(`获取账户信息失败: ${res.status} - ${errorText}`);
-  }
-
-  return res.json();
 }
 
 /**
@@ -43,7 +39,7 @@ export async function updateAccountInfo(data: {
   name?: string;
   avatar?: string | null;
   customData?: Record<string, unknown>;
-}): Promise<unknown> {
+}): Promise<AccountInfo> {
   // 过滤处理数据
   const filteredData: Record<string, unknown> = {};
 
@@ -63,21 +59,13 @@ export async function updateAccountInfo(data: {
   logger.devLog("Updating account", { fields: Object.keys(filteredData) });
 
   const accessToken = await getAccessTokenRSC();
-  const res = await fetch(`${API_BASE()}/api/my-account`, {
+  return fetchJsonWithAuth<AccountInfo>({
+    url: `${API_BASE()}/api/my-account`,
+    accessToken,
     method: "PATCH",
-    headers: {
-      authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(filteredData),
+    body: filteredData,
+    operationName: "更新账户信息",
   });
-
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "Unknown error");
-    throw new Error(`更新账户信息失败: ${res.status} - ${errorText}`);
-  }
-
-  return res.json();
 }
 
 /**
@@ -95,7 +83,7 @@ export async function updateProfileInfo(data: {
   birthdate?: string;
   zoneinfo?: string;
   locale?: string;
-}): Promise<unknown> {
+}): Promise<AccountInfo> {
   const filteredData: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(data)) {
@@ -107,21 +95,13 @@ export async function updateProfileInfo(data: {
   logger.devLog("Updating profile", { fields: Object.keys(filteredData) });
 
   const accessToken = await getAccessTokenRSC();
-  const res = await fetch(`${API_BASE()}/api/my-account/profile`, {
+  return fetchJsonWithAuth<AccountInfo>({
+    url: `${API_BASE()}/api/my-account/profile`,
+    accessToken,
     method: "PATCH",
-    headers: {
-      authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(filteredData),
+    body: filteredData,
+    operationName: "更新个人资料",
   });
-
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "Unknown error");
-    throw new Error(`更新个人资料失败: ${res.status} - ${errorText}`);
-  }
-
-  return res.json();
 }
 
 // ============ Verification ============
@@ -131,22 +111,13 @@ export async function updateProfileInfo(data: {
  */
 export async function verifyPassword(password: string): Promise<VerificationResponse> {
   const accessToken = await getAccessTokenRSC();
-
-  const res = await fetch(`${API_BASE()}/api/verifications/password`, {
+  return fetchJsonWithAuth<VerificationResponse>({
+    url: `${API_BASE()}/api/verifications/password`,
+    accessToken,
     method: "POST",
-    headers: {
-      authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ password }),
+    body: { password },
+    operationName: "密码验证",
   });
-
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "Unknown error");
-    throw new Error(`密码验证失败: ${res.status} - ${errorText}`);
-  }
-
-  return res.json();
 }
 
 /**
@@ -157,22 +128,13 @@ export async function sendVerificationCode(
   value: string
 ): Promise<VerificationCodeResponse> {
   const accessToken = await getAccessTokenRSC();
-
-  const res = await fetch(`${API_BASE()}/api/verifications/verification-code`, {
+  return fetchJsonWithAuth<VerificationCodeResponse>({
+    url: `${API_BASE()}/api/verifications/verification-code`,
+    accessToken,
     method: "POST",
-    headers: {
-      authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ identifier: { type, value } }),
+    body: { identifier: { type, value } },
+    operationName: "发送验证码",
   });
-
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "Unknown error");
-    throw new Error(`发送验证码失败: ${res.status} - ${errorText}`);
-  }
-
-  return res.json();
 }
 
 /**
@@ -185,26 +147,13 @@ export async function verifyCode(
   code: string
 ): Promise<VerificationResponse> {
   const accessToken = await getAccessTokenRSC();
-
-  const res = await fetch(`${API_BASE()}/api/verifications/verification-code/verify`, {
+  return fetchJsonWithAuth<VerificationResponse>({
+    url: `${API_BASE()}/api/verifications/verification-code/verify`,
+    accessToken,
     method: "POST",
-    headers: {
-      authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      identifier: { type, value },
-      verificationId,
-      code,
-    }),
+    body: { identifier: { type, value }, verificationId, code },
+    operationName: "验证码验证",
   });
-
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "Unknown error");
-    throw new Error(`验证码验证失败: ${res.status} - ${errorText}`);
-  }
-
-  return res.json();
 }
 
 // ============ Password ============
@@ -217,21 +166,14 @@ export async function updatePassword(
   verificationRecordId: string
 ): Promise<void> {
   const accessToken = await getAccessTokenRSC();
-
-  const res = await fetch(`${API_BASE()}/api/my-account/password`, {
+  await fetchVoidWithAuth({
+    url: `${API_BASE()}/api/my-account/password`,
+    accessToken,
     method: "POST",
-    headers: {
-      authorization: `Bearer ${accessToken}`,
-      "logto-verification-id": verificationRecordId,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ password: newPassword }),
+    body: { password: newPassword },
+    headers: { "logto-verification-id": verificationRecordId },
+    operationName: "密码更新",
   });
-
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "Unknown error");
-    throw new Error(`密码更新失败: ${res.status} - ${errorText}`);
-  }
 }
 
 // ============ Email & Phone ============
@@ -245,24 +187,14 @@ export async function updatePrimaryEmail(
   newEmailVerificationId: string
 ): Promise<void> {
   const accessToken = await getAccessTokenRSC();
-
-  const res = await fetch(`${API_BASE()}/api/my-account/primary-email`, {
+  await fetchVoidWithAuth({
+    url: `${API_BASE()}/api/my-account/primary-email`,
+    accessToken,
     method: "PATCH",
-    headers: {
-      authorization: `Bearer ${accessToken}`,
-      "logto-verification-id": identityVerificationId,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      email,
-      newIdentifierVerificationRecordId: newEmailVerificationId,
-    }),
+    body: { email, newIdentifierVerificationRecordId: newEmailVerificationId },
+    headers: { "logto-verification-id": identityVerificationId },
+    operationName: "邮箱更新",
   });
-
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "Unknown error");
-    throw new Error(`邮箱更新失败: ${res.status} - ${errorText}`);
-  }
 }
 
 /**
@@ -270,19 +202,13 @@ export async function updatePrimaryEmail(
  */
 export async function removePrimaryEmail(verificationRecordId: string): Promise<void> {
   const accessToken = await getAccessTokenRSC();
-
-  const res = await fetch(`${API_BASE()}/api/my-account/primary-email`, {
+  await fetchVoidWithAuth({
+    url: `${API_BASE()}/api/my-account/primary-email`,
+    accessToken,
     method: "DELETE",
-    headers: {
-      authorization: `Bearer ${accessToken}`,
-      "logto-verification-id": verificationRecordId,
-    },
+    headers: { "logto-verification-id": verificationRecordId },
+    operationName: "邮箱移除",
   });
-
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "Unknown error");
-    throw new Error(`邮箱移除失败: ${res.status} - ${errorText}`);
-  }
 }
 
 /**
@@ -294,24 +220,14 @@ export async function updatePrimaryPhone(
   newPhoneVerificationId: string
 ): Promise<void> {
   const accessToken = await getAccessTokenRSC();
-
-  const res = await fetch(`${API_BASE()}/api/my-account/primary-phone`, {
+  await fetchVoidWithAuth({
+    url: `${API_BASE()}/api/my-account/primary-phone`,
+    accessToken,
     method: "PATCH",
-    headers: {
-      authorization: `Bearer ${accessToken}`,
-      "logto-verification-id": identityVerificationId,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      phone,
-      newIdentifierVerificationRecordId: newPhoneVerificationId,
-    }),
+    body: { phone, newIdentifierVerificationRecordId: newPhoneVerificationId },
+    headers: { "logto-verification-id": identityVerificationId },
+    operationName: "手机号更新",
   });
-
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "Unknown error");
-    throw new Error(`手机号更新失败: ${res.status} - ${errorText}`);
-  }
 }
 
 /**
@@ -319,19 +235,13 @@ export async function updatePrimaryPhone(
  */
 export async function removePrimaryPhone(verificationRecordId: string): Promise<void> {
   const accessToken = await getAccessTokenRSC();
-
-  const res = await fetch(`${API_BASE()}/api/my-account/primary-phone`, {
+  await fetchVoidWithAuth({
+    url: `${API_BASE()}/api/my-account/primary-phone`,
+    accessToken,
     method: "DELETE",
-    headers: {
-      authorization: `Bearer ${accessToken}`,
-      "logto-verification-id": verificationRecordId,
-    },
+    headers: { "logto-verification-id": verificationRecordId },
+    operationName: "手机号移除",
   });
-
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "Unknown error");
-    throw new Error(`手机号移除失败: ${res.status} - ${errorText}`);
-  }
 }
 
 // ============ MFA ============
@@ -341,24 +251,12 @@ export async function removePrimaryPhone(verificationRecordId: string): Promise<
  */
 export async function generateTotpSecret(): Promise<TotpSecretResponse> {
   const accessToken = await getAccessTokenRSC();
-
-  const res = await fetch(
-    `${API_BASE()}/api/my-account/mfa-verifications/totp-secret/generate`,
-    {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-    }
-  );
-
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "Unknown error");
-    throw new Error(`TOTP 密钥生成失败: ${res.status} - ${errorText}`);
-  }
-
-  return res.json();
+  return fetchJsonWithAuth<TotpSecretResponse>({
+    url: `${API_BASE()}/api/my-account/mfa-verifications/totp-secret/generate`,
+    accessToken,
+    method: "POST",
+    operationName: "TOTP 密钥生成",
+  });
 }
 
 /**
@@ -379,20 +277,14 @@ export async function bindMfaFactor(
     body.newIdentifierVerificationRecordId = verificationRecordId;
   }
 
-  const res = await fetch(`${API_BASE()}/api/my-account/mfa-verifications`, {
+  await fetchVoidWithAuth({
+    url: `${API_BASE()}/api/my-account/mfa-verifications`,
+    accessToken,
     method: "POST",
-    headers: {
-      authorization: `Bearer ${accessToken}`,
-      "logto-verification-id": verificationRecordId,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
+    body,
+    headers: { "logto-verification-id": verificationRecordId },
+    operationName: "MFA 因子绑定",
   });
-
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "Unknown error");
-    throw new Error(`MFA 因子绑定失败: ${res.status} - ${errorText}`);
-  }
 }
 
 /**
@@ -400,17 +292,11 @@ export async function bindMfaFactor(
  */
 export async function getMfaVerifications(): Promise<MfaVerification[]> {
   const accessToken = await getAccessTokenRSC();
-
-  const res = await fetch(`${API_BASE()}/api/my-account/mfa-verifications`, {
-    headers: { authorization: `Bearer ${accessToken}` },
+  return fetchJsonWithAuth<MfaVerification[]>({
+    url: `${API_BASE()}/api/my-account/mfa-verifications`,
+    accessToken,
+    operationName: "获取 MFA 验证因子",
   });
-
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "Unknown error");
-    throw new Error(`获取 MFA 验证因子失败: ${res.status} - ${errorText}`);
-  }
-
-  return res.json();
 }
 
 /**
@@ -421,22 +307,13 @@ export async function deleteMfaVerification(
   identityVerificationId: string
 ): Promise<void> {
   const accessToken = await getAccessTokenRSC();
-
-  const res = await fetch(
-    `${API_BASE()}/api/my-account/mfa-verifications/${verificationId}`,
-    {
-      method: "DELETE",
-      headers: {
-        authorization: `Bearer ${accessToken}`,
-        "logto-verification-id": identityVerificationId,
-      },
-    }
-  );
-
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "Unknown error");
-    throw new Error(`MFA 验证因子删除失败: ${res.status} - ${errorText}`);
-  }
+  await fetchVoidWithAuth({
+    url: `${API_BASE()}/api/my-account/mfa-verifications/${verificationId}`,
+    accessToken,
+    method: "DELETE",
+    headers: { "logto-verification-id": identityVerificationId },
+    operationName: "MFA 验证因子删除",
+  });
 }
 
 /**
@@ -444,24 +321,12 @@ export async function deleteMfaVerification(
  */
 export async function generateBackupCodes(): Promise<BackupCodesResponse> {
   const accessToken = await getAccessTokenRSC();
-
-  const res = await fetch(
-    `${API_BASE()}/api/my-account/mfa-verifications/backup-codes/generate`,
-    {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-    }
-  );
-
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "Unknown error");
-    throw new Error(`备份码生成失败: ${res.status} - ${errorText}`);
-  }
-
-  return res.json();
+  return fetchJsonWithAuth<BackupCodesResponse>({
+    url: `${API_BASE()}/api/my-account/mfa-verifications/backup-codes/generate`,
+    accessToken,
+    method: "POST",
+    operationName: "备份码生成",
+  });
 }
 
 /**
@@ -469,15 +334,9 @@ export async function generateBackupCodes(): Promise<BackupCodesResponse> {
  */
 export async function getBackupCodes(): Promise<BackupCodesStatusResponse> {
   const accessToken = await getAccessTokenRSC();
-
-  const res = await fetch(`${API_BASE()}/api/my-account/mfa-verifications/backup-codes`, {
-    headers: { authorization: `Bearer ${accessToken}` },
+  return fetchJsonWithAuth<BackupCodesStatusResponse>({
+    url: `${API_BASE()}/api/my-account/mfa-verifications/backup-codes`,
+    accessToken,
+    operationName: "获取备份码",
   });
-
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "Unknown error");
-    throw new Error(`获取备份码失败: ${res.status} - ${errorText}`);
-  }
-
-  return res.json();
 }

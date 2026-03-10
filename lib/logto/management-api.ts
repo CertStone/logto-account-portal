@@ -8,6 +8,11 @@ import { logger } from "@/lib/logger";
 import { logtoConfig, managementAPIConfig } from "./config";
 import { features } from "@/config/features";
 import { getAccessTokenRSC, getLogtoContext } from "./client";
+import {
+  fetchWithAuth,
+  fetchJsonWithAuth,
+  fetchVoidWithAuth,
+} from "./fetch-with-auth";
 import type {
   AllIdentitiesResponse,
   SocialConnector,
@@ -39,47 +44,35 @@ async function getManagementContext() {
 /**
  * 设置密码
  */
-export async function setPassword(password: string): Promise<unknown> {
+export async function setPassword(password: string): Promise<void> {
   const { accessToken, userId } = await getManagementContext();
 
   logger.devLog("Setting password", { userId });
 
-  const res = await fetch(`${logtoConfig.endpoint}/api/users/${userId}/password`, {
+  // PATCH /password returns 204 No Content — use fetchVoidWithAuth to avoid
+  // calling res.json() on an empty body.
+  return fetchVoidWithAuth({
+    url: `${logtoConfig.endpoint}/api/users/${userId}/password`,
+    accessToken,
     method: "PATCH",
-    headers: {
-      authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ password }),
+    body: { password },
+    operationName: "密码设置",
   });
-
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "Unknown error");
-    throw new Error(`${res.status}: ${errorText}`);
-  }
-
-  return res.json();
 }
 
 /**
  * 验证密码
  */
-export async function verifyPasswordManagement(password: string): Promise<unknown> {
+export async function verifyPasswordManagement(password: string): Promise<{ success: boolean; message?: string }> {
   const { accessToken, userId } = await getManagementContext();
 
-  const res = await fetch(`${logtoConfig.endpoint}/api/users/${userId}/password/verify`, {
+  const res = await fetchWithAuth({
+    url: `${logtoConfig.endpoint}/api/users/${userId}/password/verify`,
+    accessToken,
     method: "POST",
-    headers: {
-      authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ password }),
+    body: { password },
+    operationName: "密码验证",
   });
-
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "Unknown error");
-    throw new Error(`${res.status}: ${errorText}`);
-  }
 
   if (res.status === 204) {
     return { success: true };
@@ -95,14 +88,14 @@ export async function verifyPasswordManagement(password: string): Promise<unknow
 /**
  * 获取所有身份（社交 + SSO）
  */
-export async function getAllIdentities(): Promise<unknown> {
+export async function getAllIdentities(): Promise<AllIdentitiesResponse> {
   const { apiClient, userId } = await getManagementContext();
 
   const res = await apiClient.GET("/api/users/{userId}/all-identities", {
     params: { path: { userId } },
   });
 
-  return res.data;
+  return (res.data as AllIdentitiesResponse) ?? { socialIdentities: [], ssoIdentities: [] };
 }
 
 // ============ Social Connectors ============
@@ -146,8 +139,8 @@ export function getSocialConnectorByTarget(target: string): SocialConnector | un
 export async function getSocialIdentities(): Promise<AllIdentitiesResponse> {
   try {
     const identities = await getAllIdentities();
-    logger.devLog("Fetched social identities", { count: (identities as AllIdentitiesResponse | null)?.socialIdentities?.length });
-    return (identities as AllIdentitiesResponse | null) || { socialIdentities: [], ssoIdentities: [] };
+    logger.devLog("Fetched social identities", { count: identities.socialIdentities?.length });
+    return identities;
   } catch (error) {
     logger.error("Failed to get social identities", error);
     return { socialIdentities: [], ssoIdentities: [] };
@@ -172,25 +165,13 @@ export async function createSocialVerification(
 
   logger.devLog("Creating social verification", { connectorId, state, redirectUri });
 
-  const res = await fetch(`${logtoConfig.endpoint}/api/verifications/social`, {
+  return fetchJsonWithAuth({
+    url: `${logtoConfig.endpoint}/api/verifications/social`,
+    accessToken,
     method: "POST",
-    headers: {
-      authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      state,
-      redirectUri,
-      connectorId,
-    }),
+    body: { state, redirectUri, connectorId },
+    operationName: "社交验证创建",
   });
-
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "Unknown error");
-    throw new Error(`${res.status}: ${errorText}`);
-  }
-
-  return res.json();
 }
 
 /**
@@ -204,24 +185,13 @@ export async function verifySocialVerification(
 
   logger.devLog("Verifying social verification", { verificationRecordId });
 
-  const res = await fetch(`${logtoConfig.endpoint}/api/verifications/social/verify`, {
+  return fetchJsonWithAuth({
+    url: `${logtoConfig.endpoint}/api/verifications/social/verify`,
+    accessToken,
     method: "POST",
-    headers: {
-      authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      verificationRecordId,
-      connectorData,
-    }),
+    body: { verificationRecordId, connectorData },
+    operationName: "社交验证",
   });
-
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "Unknown error");
-    throw new Error(`${res.status}: ${errorText}`);
-  }
-
-  return res.json();
 }
 
 /**
@@ -235,24 +205,16 @@ export async function addSocialIdentity(
 
   logger.devLog("Adding social identity", { verificationRecordId });
 
-  const res = await fetch(`${logtoConfig.endpoint}/api/my-account/identities`, {
+  await fetchVoidWithAuth({
+    url: `${logtoConfig.endpoint}/api/my-account/identities`,
+    accessToken,
     method: "POST",
-    headers: {
-      authorization: `Bearer ${accessToken}`,
-      ...(identityVerificationId
-        ? { "logto-verification-id": identityVerificationId }
-        : {}),
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      newIdentifierVerificationRecordId: verificationRecordId,
-    }),
+    body: { newIdentifierVerificationRecordId: verificationRecordId },
+    headers: identityVerificationId
+      ? { "logto-verification-id": identityVerificationId }
+      : {},
+    operationName: "添加社交身份",
   });
-
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "Unknown error");
-    throw new Error(`${res.status}: ${errorText}`);
-  }
 
   return { success: true };
 }
@@ -263,18 +225,12 @@ export async function addSocialIdentity(
 export async function removeSocialIdentity(target: string): Promise<{ success: true }> {
   const accessToken = await getAccessTokenRSC();
 
-  const res = await fetch(
-    `${logtoConfig.endpoint}/api/my-account/identities/${encodeURIComponent(target)}`,
-    {
-      method: "DELETE",
-      headers: { authorization: `Bearer ${accessToken}` },
-    }
-  );
-
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "Unknown error");
-    throw new Error(`${res.status}: ${errorText}`);
-  }
+  await fetchVoidWithAuth({
+    url: `${logtoConfig.endpoint}/api/my-account/identities/${encodeURIComponent(target)}`,
+    accessToken,
+    method: "DELETE",
+    operationName: "移除社交身份",
+  });
 
   return { success: true };
 }
@@ -340,14 +296,11 @@ export async function getUserLoginHistory(): Promise<LoginHistoryRecord[]> {
   url.searchParams.set("userId", userId);
   url.searchParams.set("pageSize", "20");
 
-  const res = await fetch(url.toString(), {
-    headers: { authorization: `Bearer ${accessToken}` },
+  const res = await fetchWithAuth({
+    url: url.toString(),
+    accessToken,
+    operationName: "获取登录记录",
   });
-
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "Unknown error");
-    throw new Error(`获取登录记录失败: ${res.status} - ${errorText}`);
-  }
 
   const payload = await res.json();
   const rawLogs: Array<Record<string, unknown>> = Array.isArray(payload)
@@ -435,15 +388,12 @@ export async function deleteUserAccount(userId?: string): Promise<{ success: tru
     throw new Error("无法确定待删除的用户 ID");
   }
 
-  const res = await fetch(`${logtoConfig.endpoint}/api/users/${targetUserId}`, {
+  await fetchVoidWithAuth({
+    url: `${logtoConfig.endpoint}/api/users/${targetUserId}`,
+    accessToken,
     method: "DELETE",
-    headers: { authorization: `Bearer ${accessToken}` },
+    operationName: "账户删除",
   });
-
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "Unknown error");
-    throw new Error(`账户删除失败: ${res.status} - ${errorText}`);
-  }
 
   return { success: true };
 }

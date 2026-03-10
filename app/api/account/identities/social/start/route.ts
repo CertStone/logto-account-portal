@@ -26,43 +26,59 @@ function getHeaderFirstValue(headers: Headers, key: string): string | undefined 
 }
 
 function resolveAppOrigin(request: Request): string {
+  // Priority 1: Explicit callback base URL
   const callbackBaseUrl = process.env.SOCIAL_BINDING_CALLBACK_BASE_URL;
 
   if (callbackBaseUrl) {
     try {
       return new URL(callbackBaseUrl).origin.replace(/\/$/, "");
     } catch {
-      logger.warn("Invalid SOCIAL_BINDING_CALLBACK_BASE_URL, fallback to request headers", {
+      logger.warn("Invalid SOCIAL_BINDING_CALLBACK_BASE_URL, fallback to next source", {
         callbackBaseUrl,
       });
     }
   }
 
+  // Priority 2 (production): Use BASE_URL / BASE_URL_PROD before trusting headers
+  if (process.env.NODE_ENV === "production") {
+    const prodBaseUrl = process.env.BASE_URL ?? process.env.BASE_URL_PROD;
+    if (prodBaseUrl) {
+      try {
+        return new URL(prodBaseUrl).origin.replace(/\/$/, "");
+      } catch {
+        logger.warn("Invalid BASE_URL/BASE_URL_PROD value", { prodBaseUrl });
+      }
+    }
+  }
+
+  // Priority 3: Forwarded headers (warn in production)
   const forwardedHost =
     getHeaderFirstValue(request.headers, "x-forwarded-host") ??
     getHeaderFirstValue(request.headers, "host");
 
   if (forwardedHost) {
+    if (process.env.NODE_ENV === "production") {
+      logger.warn("Social redirect origin resolved from request headers in production. Set BASE_URL or SOCIAL_BINDING_CALLBACK_BASE_URL for safety.", { forwardedHost });
+    }
     const forwardedProto = getHeaderFirstValue(request.headers, "x-forwarded-proto");
     const protocol = forwardedProto ?? (process.env.NODE_ENV === "production" ? "https" : "http");
 
     return `${protocol}://${forwardedHost}`.replace(/\/$/, "");
   }
 
-  const envBaseUrl = process.env.NODE_ENV === "production"
-    ? process.env.BASE_URL_PROD
-    : process.env.BASE_URL_DEV;
-
-  if (envBaseUrl) {
+  // Priority 4: Dev BASE_URL
+  const devBaseUrl = process.env.BASE_URL_DEV;
+  if (devBaseUrl) {
     try {
-      return new URL(envBaseUrl).origin.replace(/\/$/, "");
+      return new URL(devBaseUrl).origin.replace(/\/$/, "");
     } catch {
-      logger.warn("Invalid BASE_URL value, fallback to request origin", {
-        envBaseUrl,
+      logger.warn("Invalid BASE_URL_DEV value, fallback to request origin", {
+        devBaseUrl,
       });
     }
   }
 
+  // Final fallback
   return new URL(request.url).origin.replace(/\/$/, "");
 }
 

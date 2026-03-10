@@ -1,4 +1,4 @@
-import { getLogtoContext, getAccountInfo, signOut } from "@/app/logto";
+import { getLogtoContext, getAccountInfo, signOut } from "@/lib/logto";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Navbar } from "@/components/layout/navbar";

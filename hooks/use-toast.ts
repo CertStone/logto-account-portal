@@ -3,6 +3,11 @@ import * as React from "react"
 import type { ToastActionElement, ToastProps } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
+/**
+ * shadcn/ui default: toasts stay visible until manually dismissed.
+ * 1_000_000 ms ≈ 16 min — effectively "infinite" without literal Infinity,
+ * which would break setTimeout. Reduce to e.g. 5_000 for auto-dismiss.
+ */
 const TOAST_REMOVE_DELAY = 1000000
 
 type ToasterToast = ToastProps & {
@@ -109,6 +114,9 @@ export const reducer = (state: State, action: Action): State => {
         ...state,
         toasts: state.toasts.filter((t) => t.id !== action.toastId),
       }
+
+    default:
+      return state
   }
 }
 

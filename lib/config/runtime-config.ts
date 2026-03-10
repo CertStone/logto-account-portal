@@ -1,8 +1,21 @@
+/**
+ * Runtime configuration loader.
+ *
+ * **Module-load-time side effects**: `loadFromMountedConfig()` runs at import
+ * time (see bottom of file). If the config files are missing or invalid the
+ * module will throw immediately, preventing the server from starting. This is
+ * intentional — a misconfigured server should fail fast.
+ *
+ * Zod schemas use `.strict()`, so any extra keys in the YAML files will cause
+ * a validation error. When adding new config fields, update the schemas here
+ * first, then deploy the new YAML.
+ */
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, resolve } from "node:path";
 import { load as parseYaml } from "js-yaml";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 import type {
   FeaturesConfig,
   ProfileFieldsConfig,
@@ -142,8 +155,23 @@ function parseYamlFile(filePath: string): unknown {
   return parseYaml(raw);
 }
 
+function sortedStringify(value: unknown): string {
+  if (value === null || typeof value !== "object") {
+    return JSON.stringify(value);
+  }
+
+  if (Array.isArray(value)) {
+    return "[" + value.map(sortedStringify).join(",") + "]";
+  }
+
+  const sorted = Object.keys(value as Record<string, unknown>)
+    .sort()
+    .map((k) => JSON.stringify(k) + ":" + sortedStringify((value as Record<string, unknown>)[k]));
+  return "{" + sorted.join(",") + "}";
+}
+
 function createConfigHash(input: unknown): string {
-  return createHash("sha256").update(JSON.stringify(input)).digest("hex");
+  return createHash("sha256").update(sortedStringify(input)).digest("hex");
 }
 
 function validateCrossReferences(
@@ -169,6 +197,21 @@ function loadFromMountedConfig(configDir: string): RuntimeConfigData | null {
 
   if (!existsSync(resolvedFeaturesFile) || !existsSync(resolvedServicesFile)) {
     return null;
+  }
+
+  // 生产环境使用 .example 文件时发出警告
+  const usingExampleFeatures = resolvedFeaturesFile === featuresExampleFile;
+  const usingExampleServices = resolvedServicesFile === servicesExampleFile;
+
+  if (process.env.NODE_ENV === "production" && (usingExampleFeatures || usingExampleServices)) {
+    const exampleFiles = [
+      usingExampleFeatures && "features.yaml.example",
+      usingExampleServices && "services.yaml.example",
+    ].filter(Boolean);
+    logger.warn(
+      `[PRODUCTION WARNING] Using example config files: ${exampleFiles.join(", ")}. ` +
+      `Copy them to features.yaml / services.yaml and customize for your environment.`
+    );
   }
 
   const featuresRaw = parseYamlFile(resolvedFeaturesFile);

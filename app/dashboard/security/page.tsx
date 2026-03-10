@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslations } from "@/lib/i18n/client";
 import {
   Key,
   Shield,
@@ -32,6 +33,7 @@ export default function SecurityPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { data: runtimeConfig, loading: configLoading } = usePublicConfig();
+  const { t, language } = useTranslations();
   const [accountInfo, setAccountInfo] = useState<AccountInfo | null>(null);
   const [loginHistory, setLoginHistory] = useState<LoginHistoryRecord[]>([]);
   const [mfaVerifications, setMfaVerifications] = useState<MfaVerification[]>([]);
@@ -100,21 +102,21 @@ export default function SecurityPage() {
     const successType = getAccountCenterSuccessType();
     if (successType) {
       const messages: Record<string, string> = {
-        password: "密码已更新",
-        email: "邮箱地址已更新",
-        phone: "手机号码已更新",
-        username: "用户名已更新",
-        mfa: "MFA 设置已更新",
+        password: t("toast.passwordChanged"),
+        email: t("toast.emailUpdated"),
+        phone: t("toast.phoneUpdated"),
+        username: t("toast.usernameUpdated"),
+        mfa: t("toast.mfaUpdated"),
       };
       toast({
-        title: "更新成功",
-        description: messages[successType] || "安全设置已更新",
+        title: t("toast.updateSuccess"),
+        description: messages[successType] || t("toast.securitySettingsUpdated"),
       });
       clearAccountCenterSuccessParam();
       // 刷新账户信息
       fetchData();
     }
-  }, [fetchData, toast]);
+  }, [fetchData, toast, t]);
 
   useEffect(() => {
     fetchData();
@@ -123,14 +125,14 @@ export default function SecurityPage() {
   // 格式化时间
   const formatTimeAgo = (timestamp: number) => {
     const seconds = Math.floor((Date.now() - timestamp) / 1000);
-    if (seconds < 60) return "刚刚";
-    if (seconds < 3600) return `${Math.floor(seconds / 60)} 分钟前`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)} 小时前`;
-    return `${Math.floor(seconds / 86400)} 天前`;
+    if (seconds < 60) return t("security.timeAgo.justNow");
+    if (seconds < 3600) return t("security.timeAgo.minutesAgo", { count: String(Math.floor(seconds / 60)) });
+    if (seconds < 86400) return t("security.timeAgo.hoursAgo", { count: String(Math.floor(seconds / 3600)) });
+    return t("security.timeAgo.daysAgo", { count: String(Math.floor(seconds / 86400)) });
   };
 
   const formatDateTime = (timestamp: number) =>
-    new Date(timestamp).toLocaleString("zh-CN", {
+    new Date(timestamp).toLocaleString(language === "zh" ? "zh-CN" : "en-US", {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
@@ -170,7 +172,7 @@ export default function SecurityPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">加载中...</p>
+          <p className="text-muted-foreground">{t("common.loading")}</p>
         </div>
       </div>
     );
@@ -180,9 +182,9 @@ export default function SecurityPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">安全设置</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t("security.title")}</h1>
         <p className="text-muted-foreground">
-          管理您的密码、双因素认证和其他安全选项
+          {t("security.description")}
         </p>
       </div>
 
@@ -191,10 +193,10 @@ export default function SecurityPage() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <Key className="h-5 w-5 text-muted-foreground" />
-            <CardTitle>登录密码</CardTitle>
+            <CardTitle>{t("security.password.title")}</CardTitle>
           </div>
           <CardDescription>
-            定期更换密码可以保护您的账户安全
+            {t("security.password.description")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -207,19 +209,19 @@ export default function SecurityPage() {
               )}
               <div>
                 <p className="font-medium">
-                  {accountInfo?.hasPassword ? "密码已设置" : "未设置密码"}
+                  {accountInfo?.hasPassword ? t("security.password.set") : t("security.password.notSet")}
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {accountInfo?.hasPassword
-                    ? "建议定期更换密码"
-                    : "设置密码以保护您的账户"}
+                    ? t("security.password.advice")
+                    : t("security.password.setAdvice")}
                 </p>
               </div>
             </div>
             <Button variant="outline" asChild>
               <a href={accountCenterUrls.password("/dashboard/security")} target="_self">
                 <ExternalLink className="mr-2 h-4 w-4" />
-                {accountInfo?.hasPassword ? "修改密码" : "设置密码"}
+                {accountInfo?.hasPassword ? t("security.password.changePassword") : t("security.password.setPassword")}
               </a>
             </Button>
           </div>
@@ -232,12 +234,12 @@ export default function SecurityPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Shield className="h-5 w-5 text-muted-foreground" />
-              <CardTitle>双因素认证 (2FA)</CardTitle>
+              <CardTitle>{t("security.mfa.title")}</CardTitle>
             </div>
             <CardDescription>
               {mfaStatus.hasMfa 
-                ? `已设置 ${mfaVerifications.length} 个验证方式` 
-                : "添加额外的安全层，保护您的账户免受未经授权的访问"}
+                ? t("security.mfa.mfaSetCount", { count: String(mfaVerifications.length) })
+                : t("security.mfa.description")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -252,18 +254,18 @@ export default function SecurityPage() {
                       <Smartphone className="h-5 w-5 text-muted-foreground" />
                     )}
                     <div>
-                      <p className="font-medium">身份验证器应用</p>
+                      <p className="font-medium">{t("security.mfa.totp")}</p>
                       <p className="text-sm text-muted-foreground">
                         {mfaStatus.totpEnabled 
-                          ? "已设置" 
-                          : "使用 Google Authenticator、Microsoft Authenticator 等应用"}
+                          ? t("security.mfa.totpEnabled")
+                          : t("security.mfa.totpDesc")}
                       </p>
                     </div>
                   </div>
                   <Button variant="outline" size="sm" asChild>
                     <a href={accountCenterUrls.authenticatorApp("/dashboard/security")} target="_self">
                       <ExternalLink className="mr-2 h-4 w-4" />
-                      {mfaStatus.totpEnabled ? "管理" : "设置"}
+                      {mfaStatus.totpEnabled ? t("security.mfa.manage") : t("security.mfa.setup")}
                     </a>
                   </Button>
                 </div>
@@ -282,11 +284,11 @@ export default function SecurityPage() {
                       <Key className="h-5 w-5 text-muted-foreground" />
                     )}
                     <div>
-                      <p className="font-medium">Passkey (密钥)</p>
+                      <p className="font-medium">{t("security.mfa.passkey")}</p>
                       <p className="text-sm text-muted-foreground">
                         {mfaStatus.webAuthnEnabled
-                          ? "已设置"
-                          : "使用指纹、面容识别或设备 PIN 码登录"}
+                          ? t("security.mfa.passkeyEnabled")
+                          : t("security.mfa.passkeyDesc")}
                       </p>
                     </div>
                   </div>
@@ -294,14 +296,14 @@ export default function SecurityPage() {
                     <Button variant="outline" size="sm" asChild>
                       <a href={accountCenterUrls.addPasskey("/dashboard/security")} target="_self">
                         <ExternalLink className="mr-2 h-4 w-4" />
-                        {mfaStatus.webAuthnEnabled ? "添加" : "设置"}
+                        {mfaStatus.webAuthnEnabled ? t("common.add") : t("security.mfa.setup")}
                       </a>
                     </Button>
                     {mfaStatus.webAuthnEnabled && (
                       <Button variant="outline" size="sm" asChild>
                         <a href={accountCenterUrls.managePasskey("/dashboard/security")} target="_self">
                           <ExternalLink className="mr-2 h-4 w-4" />
-                          管理
+                          {t("security.mfa.manage")}
                         </a>
                       </Button>
                     )}
@@ -321,13 +323,13 @@ export default function SecurityPage() {
                     <Key className="h-5 w-5 text-muted-foreground" />
                   )}
                   <div>
-                    <p className="font-medium">备用恢复码</p>
+                    <p className="font-medium">{t("security.mfa.backupCodes")}</p>
                     <p className="text-sm text-muted-foreground">
                       {mfaStatus.backupCodeEnabled
-                        ? "已生成"
+                        ? t("security.mfa.backupCodesGenerated")
                         : mfaStatus.hasOtherMfaMethod
-                          ? "生成一次性恢复码，用于紧急登录"
-                          : "需先启用其他 MFA 方式"}
+                          ? t("security.mfa.backupCodesDesc")
+                          : t("security.mfa.requireOtherMfa")}
                     </p>
                   </div>
                 </div>
@@ -336,21 +338,21 @@ export default function SecurityPage() {
                     <Button variant="outline" size="sm" asChild>
                       <a href={accountCenterUrls.generateBackupCodes("/dashboard/security")} target="_self">
                         <ExternalLink className="mr-2 h-4 w-4" />
-                        {mfaStatus.backupCodeEnabled ? "重新生成" : "生成"}
+                        {mfaStatus.backupCodeEnabled ? t("security.mfa.regenerate") : t("security.mfa.generate")}
                       </a>
                     </Button>
                     {mfaStatus.backupCodeEnabled && (
                       <Button variant="outline" size="sm" asChild>
                         <a href={accountCenterUrls.manageBackupCodes("/dashboard/security")} target="_self">
                           <ExternalLink className="mr-2 h-4 w-4" />
-                          管理
+                          {t("security.mfa.manage")}
                         </a>
                       </Button>
                     )}
                   </div>
                 ) : (
                   <Button variant="outline" size="sm" disabled>
-                    需先启用其他 MFA
+                    {t("security.mfa.requireOtherMfa")}
                   </Button>
                 )}
               </div>
@@ -362,15 +364,15 @@ export default function SecurityPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Shield className="h-5 w-5 text-muted-foreground" />
-              <CardTitle>双因素认证</CardTitle>
+              <CardTitle>{t("security.twoFactorAuth")}</CardTitle>
             </div>
             <CardDescription>
-              添加额外的安全层，保护您的账户免受未经授权的访问
+              {t("security.mfa.description")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center py-8">
-              <Badge variant="secondary">功能已禁用</Badge>
+              <Badge variant="secondary">{t("security.featureDisabled")}</Badge>
             </div>
           </CardContent>
         </Card>
@@ -382,17 +384,17 @@ export default function SecurityPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <History className="h-5 w-5 text-muted-foreground" />
-              <CardTitle>登录记录</CardTitle>
+              <CardTitle>{t("security.loginHistory.title")}</CardTitle>
             </div>
             <CardDescription>
-              查看您最近 {MAX_LOGIN_HISTORY_DAYS} 天内的登录活动（最多 {MAX_LOGIN_HISTORY_ITEMS} 条）
+              {t("security.loginHistory.descriptionWithParams", { days: String(MAX_LOGIN_HISTORY_DAYS), max: String(MAX_LOGIN_HISTORY_ITEMS) })}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {loginHistory.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">
-                  最近 {MAX_LOGIN_HISTORY_DAYS} 天内暂无登录记录
+                  {t("security.loginHistory.empty", { days: String(MAX_LOGIN_HISTORY_DAYS) })}
                 </p>
               ) : (
                 <>
@@ -408,7 +410,7 @@ export default function SecurityPage() {
                           </div>
                           <div className="min-w-0">
                             <p className="font-medium truncate">{record.applicationName}</p>
-                            <p className="text-sm text-muted-foreground truncate">事件: {record.event}</p>
+                            <p className="text-sm text-muted-foreground truncate">{t("security.loginHistory.event")}: {record.event}</p>
                           </div>
                         </div>
                         <div className="text-right text-xs text-muted-foreground">
@@ -419,14 +421,14 @@ export default function SecurityPage() {
                       {(record.ip || record.userAgent) && (
                         <div className="mt-3 text-xs text-muted-foreground space-y-1">
                           {record.ip && <p>IP: {record.ip}</p>}
-                          {record.userAgent && <p className="truncate">设备: {record.userAgent}</p>}
+                          {record.userAgent && <p className="truncate">{t("security.loginHistory.device")}: {record.userAgent}</p>}
                         </div>
                       )}
                     </div>
                   ))}
                   {loginHistory.length >= MAX_LOGIN_HISTORY_ITEMS && (
                     <p className="text-center text-xs text-muted-foreground">
-                      仅显示最近 {MAX_LOGIN_HISTORY_ITEMS} 条记录
+                      {t("security.loginHistory.onlyShowRecent", { count: String(MAX_LOGIN_HISTORY_ITEMS) })}
                     </p>
                   )}
                 </>
@@ -439,15 +441,15 @@ export default function SecurityPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <History className="h-5 w-5 text-muted-foreground" />
-              <CardTitle>登录记录</CardTitle>
+              <CardTitle>{t("security.loginHistory.title")}</CardTitle>
             </div>
             <CardDescription>
-              查看您最近的登录活动
+              {t("security.loginHistory.description")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center py-8">
-              <Badge variant="secondary">功能已禁用</Badge>
+              <Badge variant="secondary">{t("security.featureDisabled")}</Badge>
             </div>
           </CardContent>
         </Card>
@@ -458,15 +460,15 @@ export default function SecurityPage() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
-            <CardTitle className="text-yellow-800 dark:text-yellow-200">安全建议</CardTitle>
+            <CardTitle className="text-yellow-800 dark:text-yellow-200">{t("security.tips.title")}</CardTitle>
           </div>
         </CardHeader>
         <CardContent>
           <ul className="list-inside list-disc space-y-1 text-sm text-yellow-700 dark:text-yellow-300">
-            <li>使用包含字母、数字和符号的强密码</li>
-            <li>启用双因素认证以增强账户安全</li>
-            <li>定期检查登录记录，识别异常登录行为</li>
-            <li>不要在公共设备上保存登录状态</li>
+            <li>{t("security.tips.strongPassword")}</li>
+            <li>{t("security.tips.enableMfa")}</li>
+            <li>{t("security.tips.checkHistory")}</li>
+            <li>{t("security.tips.publicDevice")}</li>
           </ul>
         </CardContent>
       </Card>

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ServiceCard } from "@/components/portal/service-card";
-import { Search, Sparkles, X } from "lucide-react";
+import { Search, Sparkles, X, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePublicConfig } from "@/hooks/use-public-config";
 import type { Service, ServiceCategory } from "@/config/types";
@@ -31,7 +31,7 @@ interface CachedHealthItem {
 export default function PortalPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [serviceHealth, setServiceHealth] = useState<Record<string, ServiceHealth>>({});
-  const { data: runtimeConfig, loading: configLoading } = usePublicConfig();
+  const { data: runtimeConfig, loading: configLoading, error: configError, refetch: refetchConfig } = usePublicConfig();
   const { t } = useTranslations();
 
   const runtimeServices = useMemo<Service[]>(
@@ -144,6 +144,23 @@ export default function PortalPage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">{t("common.loading")}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (configError && !runtimeConfig) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-4" />
+          <p className="font-medium">{t("toast.loadError")}</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {configError.message}
+          </p>
+          <Button variant="outline" size="sm" className="mt-4" onClick={refetchConfig}>
+            {t("portal.retry")}
+          </Button>
         </div>
       </div>
     );

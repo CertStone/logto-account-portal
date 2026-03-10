@@ -22,6 +22,8 @@ interface HealthMonitorState {
 
 const REFRESH_INTERVAL_MS = 60_000;
 const REQUEST_TIMEOUT_MS = 5_000;
+/** Max concurrent health-check probes to avoid overwhelming the network */
+const MAX_CONCURRENT_PROBES = 5;
 const HEAD_FALLBACK_STATUS = new Set([405, 501]);
 
 const state: HealthMonitorState = {
@@ -44,6 +46,9 @@ async function probeSingleService(serviceId: string): Promise<ServiceHealthSnaps
   const checkedAt = new Date().toISOString();
   const groupName = getGroupName(service.category);
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
   try {
     const parsedTarget = new URL(targetUrl);
     if (!parsedTarget.protocol.startsWith("http")) {
@@ -57,8 +62,6 @@ async function probeSingleService(serviceId: string): Promise<ServiceHealthSnaps
       };
     }
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     const startTime = Date.now();
 
     let response = await fetch(parsedTarget.toString(), {
@@ -76,8 +79,6 @@ async function probeSingleService(serviceId: string): Promise<ServiceHealthSnaps
         cache: "no-store",
       });
     }
-
-    clearTimeout(timeoutId);
 
     return {
       serviceId,
@@ -98,6 +99,8 @@ async function probeSingleService(serviceId: string): Promise<ServiceHealthSnaps
       checkedAt,
       error: error instanceof Error ? error.name : "Unknown error",
     };
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
@@ -108,9 +111,15 @@ async function refreshAllServices(): Promise<void> {
 
   state.isRefreshing = true;
   try {
-    const snapshots = await Promise.all(services.map((service) => probeSingleService(service.id)));
-    for (const snapshot of snapshots) {
-      state.snapshots[snapshot.serviceId] = snapshot;
+    // Probe in batches to avoid overwhelming the network
+    for (let i = 0; i < services.length; i += MAX_CONCURRENT_PROBES) {
+      const batch = services.slice(i, i + MAX_CONCURRENT_PROBES);
+      const snapshots = await Promise.all(
+        batch.map((service) => probeSingleService(service.id))
+      );
+      for (const snapshot of snapshots) {
+        state.snapshots[snapshot.serviceId] = snapshot;
+      }
     }
   } finally {
     state.isRefreshing = false;
@@ -127,10 +136,15 @@ function startScheduler(): void {
   }, REFRESH_INTERVAL_MS);
 }
 
+/**
+ * Lazily initialize the health monitor: run the first full probe, then start
+ * the periodic scheduler. `initializedAt` is only set **after** the first
+ * refresh succeeds so that a transient failure allows a retry on the next call.
+ */
 export async function ensureHealthMonitorStarted(): Promise<void> {
   if (!state.initializedAt) {
-    state.initializedAt = new Date().toISOString();
     await refreshAllServices();
+    state.initializedAt = new Date().toISOString();
   }
 
   startScheduler();

@@ -29,7 +29,7 @@ export default async function SignInPage() {
         <CardContent>
           <form action={handleSignIn}>
             <Button type="submit" className="w-full">
-              使用 Logto 登录
+              使用 统一认证 登录
             </Button>
           </form>
         </CardContent>
