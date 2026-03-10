@@ -109,7 +109,25 @@ cp deploy/features.yaml.example deploy/features.yaml
 
 > 这里的 `connectorId` 是**必须和 Logto 后台对应**的关键字段。
 
-**需要注意的是，在第三方平台回调地址白名单中，除了Logto的回调地址外，还应该加上本项目的回调地址`/dashboard/connections/social/callback`**
+### 2.1 对“更多社交登录方式”的适配性说明
+
+当前项目对社交登录是**配置驱动**的，扩展性较好：
+
+- 后端不会把平台写死，读取 `features.socialIdentities.config.connectors[]` 生成可用连接器列表。
+- 只要你在 Logto 中创建了该平台 connector，并把 `connectorId` 放进配置，就可以接入新平台。
+- 因此并不限于示例中的 `google/github/qq`，也可以扩展到 `apple/discord/wechat` 等。
+
+实际接入新平台时，建议按下面流程做：
+
+1. 在 Logto 中新增对应 social connector，并记下 connectorId。
+2. 在 `deploy/features.yaml` 里新增一条 connector（`target`、`connectorId`、`enabled`、展示字段）。
+3. 在第三方平台与 Logto 配齐 redirect URI 白名单。
+4. 重启应用使配置生效：`docker compose restart app`。
+
+> 注意：前端图标是按 `icon` 字段做映射。未内置的图标会降级为通用图标（不影响功能）。
+> 若你希望某个平台有品牌图标样式，可在 `app/dashboard/connections/page.tsx` 的 `resolveConnectorVisual` 中补一条映射。
+
+**需要注意：在第三方平台回调地址白名单中，除了 Logto 的回调地址外，还应加上本项目回调地址 `/dashboard/connections/social/callback`。**
 
 ### 3) 资料字段配置
 

@@ -28,6 +28,9 @@ features:
   socialIdentities:
     enabled: true
     config:
+      # 说明：connectors 支持按配置扩展，不限制为示例里的平台。
+      # 只要在 Logto 中创建了对应 social connector，并把 connectorId 填在这里即可。
+      # target 建议与 Logto connector 的 target 保持一致（如 google/github/qq/wechat/discord/...）。
       connectors:
         - target: google
           connectorId: logto_google_connector_id
@@ -47,6 +50,28 @@ features:
           displayName: QQ
           icon: qq
           description: 绑定 QQ 账号
+
+        # 下面是更多平台示例（按需启用）
+        # - target: apple
+        #   connectorId: logto_apple_connector_id
+        #   enabled: false
+        #   displayName: Apple
+        #   icon: apple
+        #   description: 绑定 Apple 账号
+        #
+        # - target: discord
+        #   connectorId: logto_discord_connector_id
+        #   enabled: false
+        #   displayName: Discord
+        #   icon: discord
+        #   description: 绑定 Discord 账号
+        #
+        # - target: wechat
+        #   connectorId: logto_wechat_connector_id
+        #   enabled: false
+        #   displayName: 微信
+        #   icon: wechat
+        #   description: 绑定微信账号
 
   sessions:
     enabled: true
