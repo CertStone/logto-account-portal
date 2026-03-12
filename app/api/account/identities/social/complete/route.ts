@@ -13,6 +13,13 @@ import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 const SOCIAL_BINDING_COOKIE_PREFIX = "social_binding_";
+const SOCIAL_BINDING_TTL_SECONDS = 10 * 60;
+
+interface SocialBindingSessionData {
+  state?: string;
+  verificationRecordId?: string;
+  socialVerificationRecordId?: string;
+}
 
 function getCookieName(target: string): string {
   return `${SOCIAL_BINDING_COOKIE_PREFIX}${encodeURIComponent(target)}`;
@@ -20,19 +27,30 @@ function getCookieName(target: string): string {
 
 function tryParseCookieValue(
   raw: string | undefined
-): { state?: string; verificationRecordId?: string } | undefined {
+): SocialBindingSessionData | undefined {
   if (!raw) return undefined;
 
   try {
-    const parsed = JSON.parse(raw) as {
-      state?: string;
-      verificationRecordId?: string;
-    };
+    const parsed = JSON.parse(raw) as SocialBindingSessionData;
 
     return parsed;
   } catch {
     return undefined;
   }
+}
+
+function persistSocialBindingSession(
+  cookieStore: Awaited<ReturnType<typeof cookies>>,
+  target: string,
+  sessionData: SocialBindingSessionData
+): void {
+  cookieStore.set(getCookieName(target), JSON.stringify(sessionData), {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: SOCIAL_BINDING_TTL_SECONDS,
+  });
 }
 
 function getErrorStatusCode(error: unknown): number | undefined {
@@ -77,7 +95,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const { target, state, connectorData, identityVerificationId } = parseResult.data;
+    const {
+      target,
+      state,
+      connectorData,
+      identityVerificationId,
+    } = parseResult.data;
 
     const connector = getSocialConnectorByTarget(target);
     if (!connector) {
@@ -113,15 +136,42 @@ export async function POST(request: Request) {
       );
     }
 
-    const verified = await verifySocialVerification(
-      sessionData.verificationRecordId,
-      connectorData
-    );
+    const verifiedRecordId =
+      sessionData.socialVerificationRecordId ??
+      (
+        await verifySocialVerification(
+          sessionData.verificationRecordId,
+          connectorData
+        )
+      ).verificationRecordId;
 
-    await addSocialIdentity(
-      verified.verificationRecordId,
-      identityVerificationId
-    );
+    try {
+      await addSocialIdentity(
+        verifiedRecordId,
+        identityVerificationId
+      );
+    } catch (addError) {
+      const addErrorStatusCode = getErrorStatusCode(addError);
+      const addErrorMessage = addError instanceof Error ? addError.message : "Unknown error";
+
+      if (isReAuthenticationRequired(addErrorMessage, addErrorStatusCode)) {
+        persistSocialBindingSession(cookieStore, target, {
+          state: sessionData.state,
+          verificationRecordId: sessionData.verificationRecordId,
+          socialVerificationRecordId: verifiedRecordId,
+        });
+
+        return NextResponse.json(
+          {
+            error: "当前操作需要重新验证身份，请输入密码后重试",
+            code: "verification_record.permission_denied",
+          },
+          { status: 401 }
+        );
+      }
+
+      throw addError;
+    }
 
     cookieStore.delete(cookieName);
 
