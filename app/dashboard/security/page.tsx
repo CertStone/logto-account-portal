@@ -6,6 +6,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslations } from "@/lib/i18n/client";
 import {
@@ -18,6 +28,7 @@ import {
   XCircle,
   Monitor,
   ExternalLink,
+  Loader2,
 } from "lucide-react";
 import { AccountInfo, LoginHistoryRecord, MfaVerification } from "@/lib/logto";
 import type { FeaturesConfig } from "@/config/types";
@@ -38,6 +49,11 @@ export default function SecurityPage() {
   const [loginHistory, setLoginHistory] = useState<LoginHistoryRecord[]>([]);
   const [mfaVerifications, setMfaVerifications] = useState<MfaVerification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [totpRemovalDialog, setTotpRemovalDialog] = useState({
+    open: false,
+    password: "",
+    removing: false,
+  });
 
   const runtimeFeatures = runtimeConfig?.features;
   const logtoEndpoint = runtimeConfig?.logtoEndpoint ?? undefined;
@@ -175,6 +191,81 @@ export default function SecurityPage() {
   };
 
   const mfaStatus = getMfaStatus();
+  const totpVerification = mfaVerifications.find((verification) =>
+    verification.type?.toLowerCase() === "totp"
+  );
+
+  const handleRemoveTotp = async () => {
+    if (!totpVerification?.id) {
+      toast({
+        variant: "destructive",
+        title: t("security.mfa.removeFailTitle"),
+        description: t("security.mfa.removeFailDesc"),
+      });
+      return;
+    }
+
+    if (!totpRemovalDialog.password.trim()) {
+      toast({
+        variant: "destructive",
+        title: t("security.mfa.removeFailTitle"),
+        description: t("security.mfa.removePasswordRequired"),
+      });
+      return;
+    }
+
+    setTotpRemovalDialog((prev) => ({ ...prev, removing: true }));
+
+    try {
+      const verifyRes = await fetch("/api/verifications/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: totpRemovalDialog.password }),
+      });
+
+      const verifyData = await verifyRes.json().catch(() => ({}));
+
+      if (!verifyRes.ok || !verifyData.verificationRecordId) {
+        throw new Error(verifyData.error || t("security.mfa.removeFailDesc"));
+      }
+
+      const deleteRes = await fetch(
+        `/api/account/mfa/${encodeURIComponent(totpVerification.id)}`,
+        {
+          method: "DELETE",
+          headers: {
+            "logto-verification-id": verifyData.verificationRecordId as string,
+          },
+        }
+      );
+
+      const deleteData = await deleteRes.json().catch(() => ({}));
+
+      if (!deleteRes.ok) {
+        throw new Error(deleteData.error || t("security.mfa.removeFailDesc"));
+      }
+
+      toast({
+        title: t("security.mfa.removeSuccessTitle"),
+        description: t("security.mfa.removeSuccessDesc"),
+      });
+
+      setTotpRemovalDialog({
+        open: false,
+        password: "",
+        removing: false,
+      });
+
+      await fetchData();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: t("security.mfa.removeFailTitle"),
+        description: error instanceof Error ? error.message : t("security.mfa.removeFailDesc"),
+      });
+      setTotpRemovalDialog((prev) => ({ ...prev, removing: false }));
+    }
+  };
 
   if (loading || (configLoading && !runtimeConfig)) {
     return (
@@ -277,13 +368,100 @@ export default function SecurityPage() {
                       </p>
                     </div>
                   </div>
-                  {authenticatorAppUrl ? (
+                  {!mfaStatus.totpEnabled && authenticatorAppUrl ? (
                     <Button variant="outline" size="sm" asChild>
                       <a href={authenticatorAppUrl} target="_self">
                         <ExternalLink className="mr-2 h-4 w-4" />
-                        {mfaStatus.totpEnabled ? t("security.mfa.manage") : t("security.mfa.setup")}
+                        {t("security.mfa.setup")}
                       </a>
                     </Button>
+                  ) : mfaStatus.totpEnabled ? (
+                    <Dialog
+                      open={totpRemovalDialog.open}
+                      onOpenChange={(open) => {
+                        if (totpRemovalDialog.removing) {
+                          return;
+                        }
+
+                        setTotpRemovalDialog((prev) => ({
+                          ...prev,
+                          open,
+                          password: open ? prev.password : "",
+                        }));
+                      }}
+                    >
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setTotpRemovalDialog((prev) => ({
+                            ...prev,
+                            open: true,
+                            password: "",
+                          }))
+                        }
+                        disabled={!totpVerification?.id}
+                      >
+                        {t("security.mfa.remove")}
+                      </Button>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>{t("security.mfa.removeConfirmTitle")}</DialogTitle>
+                          <DialogDescription>
+                            {t("security.mfa.removeConfirmDesc")}
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-2">
+                          <p className="text-sm text-muted-foreground">
+                            {t("security.mfa.removeWarning")}
+                          </p>
+                          <div className="space-y-2">
+                            <Label htmlFor="totp-remove-password">
+                              {t("security.mfa.removePasswordLabel")}
+                            </Label>
+                            <Input
+                              id="totp-remove-password"
+                              type="password"
+                              autoComplete="current-password"
+                              value={totpRemovalDialog.password}
+                              onChange={(event) =>
+                                setTotpRemovalDialog((prev) => ({
+                                  ...prev,
+                                  password: event.target.value,
+                                }))
+                              }
+                              placeholder={t("security.mfa.removePasswordPlaceholder")}
+                              disabled={totpRemovalDialog.removing}
+                            />
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button
+                            variant="outline"
+                            disabled={totpRemovalDialog.removing}
+                            onClick={() =>
+                              setTotpRemovalDialog({
+                                open: false,
+                                password: "",
+                                removing: false,
+                              })
+                            }
+                          >
+                            {t("common.cancel")}
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            disabled={totpRemovalDialog.removing}
+                            onClick={handleRemoveTotp}
+                          >
+                            {totpRemovalDialog.removing ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : null}
+                            {t("security.mfa.remove")}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
                   ) : (
                     <Button variant="outline" size="sm" disabled>
                       {t("security.featureDisabled")}

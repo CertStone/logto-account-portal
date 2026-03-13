@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
-import { removeSocialIdentity, getLogtoContext, getSocialConnectors, getSocialIdentities } from "@/lib/logto";
+import {
+  removeSocialIdentityWithVerification,
+  getLogtoContext,
+  getSocialConnectors,
+  getSocialIdentities,
+  LogtoApiError,
+} from "@/lib/logto";
 import { SocialUnlinkSchema } from "@/lib/schemas";
 import { isFeatureEnabled } from "@/config/features";
 import { logger } from "@/lib/logger";
@@ -70,11 +76,51 @@ export async function DELETE(request: Request) {
       );
     }
 
-    await removeSocialIdentity(parseResult.data.target);
+    let identityVerificationId: string | undefined;
+    const contentType = request.headers.get("content-type") ?? "";
+
+    if (contentType.includes("application/json")) {
+      const body = await request.json().catch(() => ({}));
+      const candidate =
+        typeof (body as { identityVerificationId?: unknown }).identityVerificationId === "string"
+          ? (body as { identityVerificationId: string }).identityVerificationId.trim()
+          : undefined;
+      identityVerificationId = candidate || undefined;
+    }
+
+    await removeSocialIdentityWithVerification(parseResult.data.target, identityVerificationId);
 
     return NextResponse.json({ success: true });
   } catch (error) {
     logger.error("Unlink social identity error:", error);
+
+    if (error instanceof LogtoApiError) {
+      if (
+        error.statusCode === 401 &&
+        /re-authenticate|permission\s+denied/i.test(error.userMessage)
+      ) {
+        return NextResponse.json(
+          {
+            error: "当前操作需要重新验证身份，请输入密码后重试",
+            code: "verification_record.permission_denied",
+          },
+          { status: 401 }
+        );
+      }
+
+      if (error.statusCode === 404) {
+        return NextResponse.json({ error: "未找到该社交身份" }, { status: 404 });
+      }
+
+      if (error.statusCode === 422 || /cannot_remove/i.test(error.userMessage)) {
+        return NextResponse.json(
+          { error: "无法移除该社交身份，可能是您唯一的登录方式" },
+          { status: 422 }
+        );
+      }
+
+      return NextResponse.json({ error: error.userMessage }, { status: error.statusCode });
+    }
 
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
 

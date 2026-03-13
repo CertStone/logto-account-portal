@@ -33,6 +33,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslations } from "@/lib/i18n/client";
 import { resolveIconSource } from "@/lib/icon-resolver";
@@ -145,6 +147,8 @@ export default function ConnectionsPage() {
     name: string;
   }>({ open: false, target: "", name: "" });
   const [unlinking, setUnlinking] = useState(false);
+  const [unlinkRequiresReAuth, setUnlinkRequiresReAuth] = useState(false);
+  const [unlinkPassword, setUnlinkPassword] = useState("");
 
   const fetchData = useCallback(async () => {
     try {
@@ -193,7 +197,7 @@ export default function ConnectionsPage() {
     router.push(`/dashboard/connections/social/${encodeURIComponent(target)}`);
   };
 
-  const handleUnlinkSocial = async () => {
+  const handleUnlinkSocial = async (identityVerificationId?: string) => {
     // Capture name before clearing dialog state — the closure would still hold
     // the old value, but being explicit avoids subtle bugs if code is refactored.
     const nameToShow = unlinkDialog.name;
@@ -202,16 +206,35 @@ export default function ConnectionsPage() {
     try {
       const res = await fetch(
         `/api/account/identities?target=${encodeURIComponent(unlinkDialog.target)}`,
-        { method: "DELETE" }
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            identityVerificationId ? { identityVerificationId } : {}
+          ),
+        }
       );
 
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
+        if (
+          res.status === 401 &&
+          (data.code === "verification_record.permission_denied" ||
+            (typeof data.error === "string" &&
+              /re-authenticate|permission\s+denied|重新验证/i.test(data.error)))
+        ) {
+          setUnlinkRequiresReAuth(true);
+          setUnlinking(false);
+          return;
+        }
+
         throw new Error(data.error || t("toast.unlinkError"));
       }
 
       setUnlinkDialog({ open: false, target: "", name: "" });
+      setUnlinkRequiresReAuth(false);
+      setUnlinkPassword("");
       await fetchData();
 
       toast({
@@ -226,6 +249,44 @@ export default function ConnectionsPage() {
         variant: "destructive",
         title: t("toast.unlinkError"),
         description: error instanceof Error ? error.message : t("toast.unknownError"),
+      });
+    }
+  };
+
+  const handleUnlinkWithPassword = async () => {
+    if (!unlinkPassword.trim()) {
+      toast({
+        variant: "destructive",
+        title: t("toast.unlinkError"),
+        description: t("connections.reauthPasswordRequired"),
+      });
+      return;
+    }
+
+    setUnlinking(true);
+
+    try {
+      const verifyRes = await fetch("/api/verifications/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: unlinkPassword }),
+      });
+
+      const verifyData = await verifyRes.json().catch(() => ({}));
+
+      if (!verifyRes.ok || !verifyData.verificationRecordId) {
+        throw new Error(verifyData.error || t("connections.reauthVerifyFailed"));
+      }
+
+      await handleUnlinkSocial(verifyData.verificationRecordId as string);
+    } catch (error) {
+      console.error("Unlink re-auth error:", error);
+      setUnlinking(false);
+
+      toast({
+        variant: "destructive",
+        title: t("toast.unlinkError"),
+        description: error instanceof Error ? error.message : t("connections.reauthVerifyFailed"),
       });
     }
   };
@@ -397,7 +458,13 @@ export default function ConnectionsPage() {
       <Dialog
         open={unlinkDialog.open}
         onOpenChange={(open) => {
-          if (!unlinking) setUnlinkDialog((prev) => ({ ...prev, open }));
+          if (!unlinking) {
+            setUnlinkDialog((prev) => ({ ...prev, open }));
+            if (!open) {
+              setUnlinkRequiresReAuth(false);
+              setUnlinkPassword("");
+            }
+          }
         }}
       >
         <DialogContent>
@@ -407,17 +474,54 @@ export default function ConnectionsPage() {
               {t("connections.confirmUnlinkDesc", { name: unlinkDialog.name })}
             </DialogDescription>
           </DialogHeader>
+          {unlinkRequiresReAuth ? (
+            <div className="space-y-3 py-2">
+              <p className="text-sm text-muted-foreground">
+                {t("connections.reauthRequired")}
+              </p>
+              <div className="space-y-2">
+                <Label htmlFor="unlink-password">
+                  {t("connections.reauthPasswordLabel")}
+                </Label>
+                <Input
+                  id="unlink-password"
+                  type="password"
+                  autoComplete="current-password"
+                  placeholder={t("connections.reauthPasswordPlaceholder")}
+                  value={unlinkPassword}
+                  onChange={(event) => setUnlinkPassword(event.target.value)}
+                  disabled={unlinking}
+                />
+              </div>
+            </div>
+          ) : null}
           <DialogFooter>
             <Button
               variant="outline"
               disabled={unlinking}
-              onClick={() => setUnlinkDialog({ open: false, target: "", name: "" })}
+              onClick={() => {
+                setUnlinkDialog({ open: false, target: "", name: "" });
+                setUnlinkRequiresReAuth(false);
+                setUnlinkPassword("");
+              }}
             >
               {t("common.cancel")}
             </Button>
-            <Button variant="destructive" onClick={handleUnlinkSocial} disabled={unlinking}>
+            <Button
+              variant="destructive"
+              onClick={
+                unlinkRequiresReAuth
+                  ? handleUnlinkWithPassword
+                  : () => {
+                      void handleUnlinkSocial();
+                    }
+              }
+              disabled={unlinking}
+            >
               {unlinking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t("connections.confirmUnlink")}
+              {unlinkRequiresReAuth
+                ? t("connections.reauthAndUnlink")
+                : t("connections.confirmUnlink")}
             </Button>
           </DialogFooter>
         </DialogContent>

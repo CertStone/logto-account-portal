@@ -11,7 +11,7 @@ import {
   isNavItemActive,
   getNavLabel,
 } from "@/config/navigation";
-import { ChevronRight, LayoutGrid, User } from "lucide-react";
+import { ChevronRight, LayoutGrid, User, Github } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useTranslations } from "@/lib/i18n/client";
 
@@ -103,6 +103,17 @@ export function Sidebar({ user }: SidebarProps) {
         <p className="text-center text-xs text-muted-foreground">
           {t("meta.footer")}
         </p>
+        <div className="mt-2 flex items-center justify-center">
+          <a
+            href="https://github.com/CertStone/logto-account-portal"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <Github className="h-3.5 w-3.5" />
+            github.com/CertStone/logto-account-portal
+          </a>
+        </div>
       </div>
     </aside>
   );

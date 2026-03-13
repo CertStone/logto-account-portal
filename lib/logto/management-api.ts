@@ -235,6 +235,28 @@ export async function removeSocialIdentity(target: string): Promise<{ success: t
   return { success: true };
 }
 
+/**
+ * 移除社交身份（可选身份验证头）
+ */
+export async function removeSocialIdentityWithVerification(
+  target: string,
+  identityVerificationId?: string
+): Promise<{ success: true }> {
+  const accessToken = await getAccessTokenRSC();
+
+  await fetchVoidWithAuth({
+    url: `${logtoConfig.endpoint}/api/my-account/identities/${encodeURIComponent(target)}`,
+    accessToken,
+    method: "DELETE",
+    headers: identityVerificationId
+      ? { "logto-verification-id": identityVerificationId }
+      : {},
+    operationName: "移除社交身份",
+  });
+
+  return { success: true };
+}
+
 // ============ Login History ============
 
 function normalizeLogTimestamp(value: unknown): number | null {

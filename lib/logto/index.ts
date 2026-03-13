@@ -57,6 +57,7 @@ export {
   verifySocialVerification,
   addSocialIdentity,
   removeSocialIdentity,
+  removeSocialIdentityWithVerification,
   // Login History
   getUserLoginHistory,
   // Account Deletion
