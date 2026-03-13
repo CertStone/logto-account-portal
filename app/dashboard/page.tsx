@@ -227,7 +227,7 @@ export default async function DashboardPage() {
             </CardHeader>
             <CardContent>
               <Button variant="ghost" size="sm" className="gap-1 px-0 group-hover:gap-2 transition-all">
-                 {tt("portal.enterAccountCenter").replace("Account Center", tt("dashboard.quickActions.portal"))} <ArrowRight className="h-4 w-4" />
+                 {tt("dashboard.quickActions.portal")} <ArrowRight className="h-4 w-4" />
               </Button>
             </CardContent>
           </Card>

@@ -1,5 +1,6 @@
 import { getLogtoContext } from "@/lib/logto";
 import { PortalHeader } from "@/components/portal/portal-header";
+import { signIn } from "@/lib/logto";
 
 export const dynamic = "force-dynamic";
 
@@ -17,9 +18,17 @@ export default async function PortalLayout({
   }
   const accountCenterHref = isAuthenticated ? "/dashboard" : "/sign-in";
 
+  async function handleSignIn() {
+    "use server";
+    await signIn();
+  }
+
   return (
     <div className="min-h-screen bg-background">
-      <PortalHeader accountCenterHref={accountCenterHref} />
+      <PortalHeader
+        accountCenterHref={accountCenterHref}
+        signInAction={isAuthenticated ? undefined : handleSignIn}
+      />
 
       {/* Main Content */}
       <main className="px-4 py-8 lg:px-8">

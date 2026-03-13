@@ -7,9 +7,10 @@ import { useTranslations } from "@/lib/i18n/client";
 
 interface PortalHeaderProps {
   accountCenterHref: string;
+  signInAction?: () => Promise<void>;
 }
 
-export function PortalHeader({ accountCenterHref }: PortalHeaderProps) {
+export function PortalHeader({ accountCenterHref, signInAction }: PortalHeaderProps) {
   const { t } = useTranslations();
 
   return (
@@ -20,11 +21,19 @@ export function PortalHeader({ accountCenterHref }: PortalHeaderProps) {
           <span>{t("portal.title")}</span>
         </div>
 
-        <Link href={accountCenterHref}>
-          <Button variant="ghost" size="sm">
-            {t("portal.enterAccountCenter")}
-          </Button>
-        </Link>
+        {signInAction ? (
+          <form action={signInAction}>
+            <Button variant="ghost" size="sm" type="submit">
+              {t("portal.enterAccountCenter")}
+            </Button>
+          </form>
+        ) : (
+          <Link href={accountCenterHref}>
+            <Button variant="ghost" size="sm">
+              {t("portal.enterAccountCenter")}
+            </Button>
+          </Link>
+        )}
       </div>
     </header>
   );
