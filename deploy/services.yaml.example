@@ -32,7 +32,7 @@ services:
   - id: vaultwarden
     name: Vaultwarden
     description: 个人密码管理器，安全存储您的所有密码
-    icon: /services/vaultwarden.svg
+    icon: vaultwarden.svg
     iconName: Shield
     href: https://vault.certstone.cc
     ping: https://vault.certstone.cc
@@ -41,14 +41,14 @@ services:
   - id: outline
     name: Outline
     description: 团队知识库和文档协作平台
-    icon: /services/outline.svg
+    icon: outline.svg
     iconName: FileText
     href: https://wiki.certstone.cc
     category: productivity
   - id: nextcloud
     name: Nextcloud
     description: 私有云存储和文件同步
-    icon: /services/nextcloud.svg
+    icon: nextcloud.svg
     iconName: Cloud
     href: https://cloud.certstone.cc
     category: storage
@@ -56,14 +56,14 @@ services:
   - id: portainer
     name: Portainer
     description: Docker 容器管理界面
-    icon: /services/portainer.svg
+    icon: portainer.svg
     iconName: Database
     href: https://docker.certstone.cc
     category: development
   - id: gitlab
     name: GitLab
     description: 代码托管和 CI/CD 平台
-    icon: /services/gitlab.svg
+    icon: gitlab.svg
     iconName: Code
     href: https://git.certstone.cc
     category: development
@@ -71,7 +71,7 @@ services:
   - id: mail
     name: Webmail
     description: 网页邮件客户端
-    icon: /services/mail.svg
+    icon: mail.svg
     iconName: Mail
     href: https://mail.certstone.cc
     category: communication
