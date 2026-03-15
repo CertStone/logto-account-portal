@@ -22,11 +22,13 @@ interface SidebarProps {
     email?: string;
     avatar?: string;
   };
+  portalEnabled?: boolean;
 }
 
-export function Sidebar({ user }: SidebarProps) {
+export function Sidebar({ user, portalEnabled = true }: SidebarProps) {
   const pathname = usePathname();
   const { t, language } = useTranslations();
+  const visibleAuxiliaryNavItems = portalEnabled ? auxiliaryNavItems : [];
 
   return (
     <aside className="fixed left-0 top-0 z-40 hidden h-screen w-64 flex-col border-r bg-card md:flex">
@@ -87,7 +89,7 @@ export function Sidebar({ user }: SidebarProps) {
 
       {/* Portal Link */}
       <div className="p-3">
-        {auxiliaryNavItems.map((item) => (
+        {visibleAuxiliaryNavItems.map((item) => (
           <Link key={item.href} href={item.href}>
             <Button variant="outline" className="w-full justify-start gap-3">
               <item.icon className="h-4 w-4" />

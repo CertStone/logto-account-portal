@@ -39,14 +39,16 @@ interface NavbarProps {
     avatar?: string;
   };
   onSignOut?: () => void;
+  portalEnabled?: boolean;
 }
 
-export function Navbar({ user, onSignOut }: NavbarProps) {
+export function Navbar({ user, onSignOut, portalEnabled = true }: NavbarProps) {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const { t, language } = useTranslations();
 
-  const allNavItems = [...mainNavItems, ...auxiliaryNavItems];
+  const visibleAuxiliaryNavItems = portalEnabled ? auxiliaryNavItems : [];
+  const allNavItems = [...mainNavItems, ...visibleAuxiliaryNavItems];
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -145,15 +147,14 @@ export function Navbar({ user, onSignOut }: NavbarProps) {
                   </DropdownMenuItem>
                 </Link>
               ))}
-              <Link href={auxiliaryNavItems[0].href}>
-                <DropdownMenuItem>
-                  {(() => {
-                    const Icon = auxiliaryNavItems[0].icon;
-                    return <Icon className="mr-2 h-4 w-4" />;
-                  })()}
-                  {getNavLabel(auxiliaryNavItems[0], language)}
-                </DropdownMenuItem>
-              </Link>
+              {visibleAuxiliaryNavItems.map((item) => (
+                <Link key={item.href} href={item.href}>
+                  <DropdownMenuItem>
+                    <item.icon className="mr-2 h-4 w-4" />
+                    {getNavLabel(item, language)}
+                  </DropdownMenuItem>
+                </Link>
+              ))}
               <DropdownMenuSeparator />
               {onSignOut && (
                 <DropdownMenuItem onClick={onSignOut} className="text-destructive">

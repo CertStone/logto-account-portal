@@ -19,6 +19,7 @@ import {
   Globe,
 } from "lucide-react";
 import { normalizeLocale, t as translate } from "@/lib/i18n";
+import { portalEnabled } from "@/lib/config/app-flags";
 
 export default async function DashboardPage() {
   const { isAuthenticated, claims } = await getLogtoContext();
@@ -216,22 +217,24 @@ export default async function DashboardPage() {
           </Card>
         </Link>
 
-        <Link href="/portal" className="h-full">
-          <Card className="group h-full cursor-pointer transition-all hover:shadow-md">
-            <CardHeader className="pb-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100 text-orange-600 transition-colors group-hover:bg-orange-600 group-hover:text-white dark:bg-orange-900/30">
-                <Globe className="h-5 w-5" />
-              </div>
-               <CardTitle className="pt-3">{tt("dashboard.quickActions.portal")}</CardTitle>
-               <CardDescription>{tt("dashboard.quickActions.portalDesc")}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button variant="ghost" size="sm" className="gap-1 px-0 group-hover:gap-2 transition-all">
-                 {tt("dashboard.quickActions.portal")} <ArrowRight className="h-4 w-4" />
-              </Button>
-            </CardContent>
-          </Card>
-        </Link>
+        {portalEnabled && (
+          <Link href="/portal" className="h-full">
+            <Card className="group h-full cursor-pointer transition-all hover:shadow-md">
+              <CardHeader className="pb-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100 text-orange-600 transition-colors group-hover:bg-orange-600 group-hover:text-white dark:bg-orange-900/30">
+                  <Globe className="h-5 w-5" />
+                </div>
+                <CardTitle className="pt-3">{tt("dashboard.quickActions.portal")}</CardTitle>
+                <CardDescription>{tt("dashboard.quickActions.portalDesc")}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button variant="ghost" size="sm" className="gap-1 px-0 group-hover:gap-2 transition-all">
+                  {tt("dashboard.quickActions.portal")} <ArrowRight className="h-4 w-4" />
+                </Button>
+              </CardContent>
+            </Card>
+          </Link>
+        )}
       </div>
 
       {/* Security Status */}

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Navbar } from "@/components/layout/navbar";
 import { logger } from "@/lib/logger";
+import { portalEnabled } from "@/lib/config/app-flags";
 
 export const dynamic = "force-dynamic";
 
@@ -43,11 +44,11 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-screen bg-background">
       {/* Desktop Sidebar */}
-      <Sidebar user={user} />
+      <Sidebar user={user} portalEnabled={portalEnabled} />
 
       {/* Main Content */}
       <div className="md:pl-64">
-        <Navbar user={user} onSignOut={handleSignOut} />
+        <Navbar user={user} onSignOut={handleSignOut} portalEnabled={portalEnabled} />
         <main className="p-4 lg:p-8">
           <div className="mx-auto w-full max-w-7xl">{children}</div>
         </main>
