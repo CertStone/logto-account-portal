@@ -61,7 +61,6 @@ export interface Service {
   name: string;
   description: string;
   icon: string;
-  iconName: string;
   href: string;
   ping?: string;
   category: string;

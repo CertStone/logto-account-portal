@@ -49,7 +49,7 @@ This guide explains three kinds of configuration files:
 - `serviceCategories[]`: service categories
   - Fields: `id`, `name`, `description`
 - `services[]`: service list
-  - Fields: `id`, `name`, `description`, `icon`, `iconName`, `href`, `category`
+  - Fields: `id`, `name`, `description`, `icon`, `href`, `category`
   - Optional: `ping`, `isNew`, `isPopular`
 
 ### 2) Key validation rules
@@ -229,7 +229,7 @@ Check `services.yaml`:
 
 - **Portal (`/portal`)**
   - Source: `services[].icon` in `deploy/services.yaml`
-  - `services[].iconName` is used only as fallback icon.
+- `services[].icon` is the single icon source; if loading fails, UI falls back to default icon.
 
 - **Social Connections (`/dashboard/connections`)**
   - Source: `features.socialIdentities.config.connectors[].icon` in `deploy/features.yaml`

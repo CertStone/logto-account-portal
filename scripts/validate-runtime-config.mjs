@@ -107,7 +107,6 @@ const servicesSchema = z
             name: z.string().min(1),
             description: z.string().min(1),
             icon: z.string().min(1),
-            iconName: z.string().min(1),
             href: z.string().url(),
             ping: z.string().url().optional(),
             category: z.string().min(1),

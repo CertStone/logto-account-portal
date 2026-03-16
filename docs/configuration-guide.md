@@ -49,7 +49,7 @@
 - `serviceCategories[]`：服务分类
   - 字段：`id`, `name`, `description`
 - `services[]`：服务列表
-  - 字段：`id`, `name`, `description`, `icon`, `iconName`, `href`, `category`
+  - 字段：`id`, `name`, `description`, `icon`, `href`, `category`
   - 可选：`ping`, `isNew`, `isPopular`
 
 ### 2) 关键校验规则
@@ -229,7 +229,7 @@ docker compose restart app
 
 - **Portal 页面（`/portal`）**
   - 配置来源在：`deploy/services.yaml` 的 `services[].icon`
-  - `services[].iconName` 仅作为兜底图标使用。
+- `services[].icon` 是服务图标唯一来源；加载失败时自动回退到默认图标。
   
 - **社交连接页面（`/dashboard/connections`）**
   - 配置来源在：`deploy/features.yaml` 的 `features.socialIdentities.config.connectors[].icon`

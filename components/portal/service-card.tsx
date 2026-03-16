@@ -3,35 +3,15 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Shield,
-  FileText,
-  Cloud,
-  Database,
-  Mail,
-  MessageSquare,
-  Code,
   Globe,
   CheckCircle,
   XCircle,
   Loader2,
-  type LucideIcon,
 } from "lucide-react";
 import type { Service } from "@/config/types";
 import { useTranslations } from "@/lib/i18n/client";
 import { resolveIconSource } from "@/lib/icon-resolver";
 import { IconImageFallback } from "@/components/shared/icon-image-fallback";
-
-// Icon mapping
-const iconMap: Record<string, LucideIcon> = {
-  Shield,
-  FileText,
-  Cloud,
-  Database,
-  Mail,
-  MessageSquare,
-  Code,
-  Globe,
-};
 
 type ServiceStatus = "unknown" | "online" | "offline" | "checking";
 
@@ -49,8 +29,6 @@ interface ServiceCardProps {
 export function ServiceCard({ service, health }: ServiceCardProps) {
   const { t } = useTranslations();
 
-  // Get the icon component
-  const IconComponent = iconMap[service.iconName] || Globe;
   const resolvedIcon = resolveIconSource(service.icon);
 
   // Status indicator
@@ -106,10 +84,10 @@ export function ServiceCard({ service, health }: ServiceCardProps) {
                   src={resolvedIcon}
                   alt={`${service.name} icon`}
                   className="h-6 w-6 rounded-sm object-contain"
-                  fallback={<IconComponent className="h-6 w-6" />}
+                  fallback={<Globe className="h-6 w-6" />}
                 />
               ) : null}
-              {!resolvedIcon ? <IconComponent className="h-6 w-6" /> : null}
+              {!resolvedIcon ? <Globe className="h-6 w-6" /> : null}
             </div>
             <div className="flex gap-1">
               {service.isNew && (
