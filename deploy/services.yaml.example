@@ -9,23 +9,18 @@ portalContent:
 serviceCategories:
   - id: security
     name: 安全工具
-    iconName: Shield
     description: 密码管理和安全相关服务
   - id: productivity
     name: 生产力
-    iconName: FileText
     description: 文档、笔记和协作工具
   - id: storage
     name: 存储与同步
-    iconName: Cloud
     description: 文件存储和云同步服务
   - id: development
     name: 开发工具
-    iconName: Code
     description: 开发和运维相关工具
   - id: communication
     name: 通讯
-    iconName: MessageSquare
     description: 即时通讯和邮件服务
 
 services:

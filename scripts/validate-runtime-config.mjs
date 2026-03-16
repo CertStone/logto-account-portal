@@ -93,7 +93,7 @@ const servicesSchema = z
           .object({
             id: z.string().min(1),
             name: z.string().min(1),
-            iconName: z.string().min(1),
+            iconName: z.string().min(1).optional(),
             description: z.string().min(1),
           })
           .strict()

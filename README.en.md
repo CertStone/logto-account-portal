@@ -120,6 +120,7 @@ docker compose logs -f app
 
 ## 6. Highlights
 
+- **Multi-language support**: Built-in i18n framework for easy switching between English and Chinese interfaces
 - **Unified configuration model**: `.env + deploy/*.yaml` for both dev and deployment
 - **Runtime configuration loading**: restart container after config change to apply
 - **Built-in config validation**: env/yaml validated before app startup to reduce runtime config errors

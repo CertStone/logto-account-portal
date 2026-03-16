@@ -47,7 +47,7 @@
 ### 1) 文件结构
 
 - `serviceCategories[]`：服务分类
-  - 字段：`id`, `name`, `iconName`, `description`
+  - 字段：`id`, `name`, `description`
 - `services[]`：服务列表
   - 字段：`id`, `name`, `description`, `icon`, `iconName`, `href`, `category`
   - 可选：`ping`, `isNew`, `isPopular`
@@ -305,4 +305,3 @@ portalContent:
   # footerDescription: 服务门户汇集了所有接入 Logto 身份认证的服务
   # footerContent: 所有服务均使用统一的身份认证，无需重复登录。如果您需要访问新的服务，请联系管理员添加。
 ```
-

@@ -34,8 +34,6 @@ export const managementAPIConfig = {
   clientId: process.env.LOGTO_M2M_CLIENT_ID!,
   clientSecret: process.env.LOGTO_M2M_CLIENT_SECRET!,
   logtoEndpoint: process.env.LOGTO_ENDPOINT!,
-  githubConnectorId: process.env.LOGTO_GITHUB_CONNECTOR_ID!,
-  googleConnectorId: process.env.LOGTO_GOOGLE_CONNECTOR_ID!,
 };
 
 /**

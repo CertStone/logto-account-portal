@@ -1,18 +1,12 @@
 features:
   emailChange:
     enabled: true
-    config:
-      requirePasswordVerification: true
 
   phoneChange:
     enabled: false
-    config:
-      requirePasswordVerification: true
 
   usernameChange:
     enabled: false
-    config:
-      requirePasswordVerification: true
 
   mfa:
     totp:
@@ -78,9 +72,6 @@ features:
 
   accountDeletion:
     enabled: true
-    config:
-      requirePasswordConfirmation: true
-      requireConfirmationText: true
 
 profileFields:
   avatar:

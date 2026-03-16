@@ -47,7 +47,7 @@ This guide explains three kinds of configuration files:
 ### 1) File structure
 
 - `serviceCategories[]`: service categories
-  - Fields: `id`, `name`, `iconName`, `description`
+  - Fields: `id`, `name`, `description`
 - `services[]`: service list
   - Fields: `id`, `name`, `description`, `icon`, `iconName`, `href`, `category`
   - Optional: `ping`, `isNew`, `isPopular`

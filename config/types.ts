@@ -52,7 +52,7 @@ export interface ProfileFieldsConfig {
 export interface ServiceCategory {
   id: string;
   name: string;
-  iconName: string;
+  iconName?: string;
   description: string;
 }
 
