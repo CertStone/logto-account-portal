@@ -22,8 +22,8 @@ features:
   socialIdentities:
     enabled: true
     config:
-      # 说明：connectors 支持按配置扩展，不限制为示例里的平台。
-      # 只要在 Logto 中创建了对应 social connector，并把 connectorId 填在这里即可。
+      # 说明：connectors 支持按配置扩展，不限制为示例里的平台。只要在 Logto 中创建了对应 social connector，并把 connectorId 填在这里即可。
+      # 补充：受限于个人精力，实际只对GitHub和QQ连接器进行了测试，如果其他平台有问题欢迎提 issue.
       # target 建议与 Logto connector 的 target 保持一致（如 google/github/qq/wechat/discord/...）。
       connectors:
         - target: google
