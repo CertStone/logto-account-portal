@@ -85,20 +85,24 @@ export function Sidebar({ user, portalEnabled = true }: SidebarProps) {
         })}
       </nav>
 
-      <Separator className="mx-3 w-auto" />
+      {visibleAuxiliaryNavItems.length > 0 ? (
+        <>
+          <Separator className="mx-3 w-auto" />
 
-      {/* Portal Link */}
-      <div className="p-3">
-        {visibleAuxiliaryNavItems.map((item) => (
-          <Link key={item.href} href={item.href}>
-            <Button variant="outline" className="w-full justify-start gap-3">
-              <item.icon className="h-4 w-4" />
-              {getNavLabel(item, language)}
-              <ChevronRight className="ml-auto h-4 w-4" />
-            </Button>
-          </Link>
-        ))}
-      </div>
+          {/* Portal Link */}
+          <div className="p-3">
+            {visibleAuxiliaryNavItems.map((item) => (
+              <Link key={item.href} href={item.href}>
+                <Button variant="outline" className="w-full justify-start gap-3">
+                  <item.icon className="h-4 w-4" />
+                  {getNavLabel(item, language)}
+                  <ChevronRight className="ml-auto h-4 w-4" />
+                </Button>
+              </Link>
+            ))}
+          </div>
+        </>
+      ) : null}
 
       {/* Footer */}
       <div className="border-t p-4">

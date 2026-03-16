@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: t("meta.fullTitle", "zh"),
+  title: process.env.APP_NAME?.trim() || t("meta.fullTitle", "zh"),
   description: t("meta.description", "zh"),
 };
 
