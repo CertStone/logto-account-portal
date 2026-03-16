@@ -9,7 +9,7 @@ export class LogtoApiError extends Error {
   constructor(
     public readonly statusCode: number,
     public readonly userMessage: string,
-    public readonly upstreamDetail?: string,
+    public readonly upstreamDetail?: unknown,
   ) {
     super(userMessage);
     this.name = "LogtoApiError";
@@ -83,7 +83,19 @@ export async function fetchWithAuth({
       errorText,
     });
     const sanitized = sanitizeUpstreamError(errorText);
-    throw new LogtoApiError(res.status, `${operationName}失败: ${sanitized}`);
+
+    let upstreamDetail: unknown;
+    try {
+      upstreamDetail = JSON.parse(errorText);
+    } catch {
+      upstreamDetail = errorText;
+    }
+
+    throw new LogtoApiError(
+      res.status,
+      `${operationName}失败: ${sanitized}`,
+      upstreamDetail
+    );
   }
 
   return res;

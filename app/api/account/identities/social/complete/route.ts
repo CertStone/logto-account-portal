@@ -4,6 +4,7 @@ import {
   addSocialIdentity,
   getLogtoContext,
   getSocialConnectorByTarget,
+  LogtoApiError,
   verifySocialVerification,
 } from "@/lib/logto";
 import { SocialCompleteSchema } from "@/lib/schemas";
@@ -19,6 +20,7 @@ interface SocialBindingSessionData {
   state?: string;
   verificationRecordId?: string;
   socialVerificationRecordId?: string;
+  redirectUri?: string;
 }
 
 function getCookieName(target: string): string {
@@ -68,6 +70,41 @@ function isReAuthenticationRequired(errorMessage: string, statusCode?: number): 
   }
 
   return /re-authenticate|permission\s+denied/i.test(errorMessage);
+}
+
+function normalizeConnectorData(
+  connectorData: Record<string, unknown>
+): Record<string, unknown> {
+  const normalized: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(connectorData)) {
+    if (value === undefined || value === null) {
+      continue;
+    }
+
+    if (Array.isArray(value) && value.length === 1) {
+      normalized[key] = value[0];
+      continue;
+    }
+
+    normalized[key] = value;
+  }
+
+  return normalized;
+}
+
+function extractConnectorGeneralCode(error: unknown): string | undefined {
+  if (!(error instanceof LogtoApiError)) {
+    return undefined;
+  }
+
+  const detail = error.upstreamDetail;
+  if (typeof detail !== "object" || detail === null) {
+    return undefined;
+  }
+
+  const connectorErrorCode = (detail as { code?: unknown }).code;
+  return typeof connectorErrorCode === "string" ? connectorErrorCode : undefined;
 }
 
 export async function POST(request: Request) {
@@ -141,7 +178,12 @@ export async function POST(request: Request) {
       (
         await verifySocialVerification(
           sessionData.verificationRecordId,
-          connectorData
+          {
+            ...normalizeConnectorData(connectorData),
+            redirectUri:
+              sessionData.redirectUri ??
+              `${new URL(request.url).origin}/dashboard/connections/social/callback?target=${encodeURIComponent(target)}`,
+          }
         )
       ).verificationRecordId;
 
@@ -159,6 +201,7 @@ export async function POST(request: Request) {
           state: sessionData.state,
           verificationRecordId: sessionData.verificationRecordId,
           socialVerificationRecordId: verifiedRecordId,
+          redirectUri: sessionData.redirectUri,
         });
 
         return NextResponse.json(
@@ -196,6 +239,18 @@ export async function POST(request: Request) {
           code: "verification_record.permission_denied",
         },
         { status: 401 }
+      );
+    }
+
+    const connectorGeneralCode = extractConnectorGeneralCode(error);
+    if (statusCode === 400 && connectorGeneralCode === "connector.general") {
+      return NextResponse.json(
+        {
+          error:
+            "QQ 回调参数校验失败，请确认 QQ 互联中配置的网站回调域与当前应用回调地址一致，并重试。",
+          code: "connector.general",
+        },
+        { status: 400 }
       );
     }
 

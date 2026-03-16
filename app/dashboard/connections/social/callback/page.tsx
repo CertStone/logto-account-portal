@@ -12,7 +12,12 @@ function pickConnectorData(searchParams: URLSearchParams): Record<string, unknow
   const connectorData: Record<string, unknown> = {};
 
   for (const [key, value] of searchParams.entries()) {
-    if (key === "target") {
+    if (
+      key === "target" ||
+      key === "state" ||
+      key === "error" ||
+      key === "error_description"
+    ) {
       continue;
     }
 
@@ -43,17 +48,25 @@ export default function SocialCallbackPage() {
   const callbackPayload = useMemo(() => {
     const target = searchParams.get("target");
     const state = searchParams.get("state");
+    const oauthError = searchParams.get("error");
+    const oauthErrorDescription = searchParams.get("error_description");
     const connectorData = pickConnectorData(searchParams);
 
     return {
       target,
       state,
+      oauthError,
+      oauthErrorDescription,
       connectorData,
     };
   }, [searchParams]);
 
   const completeBinding = useCallback(async (identityVerificationId?: string) => {
-    const { target, state, connectorData } = callbackPayload;
+    const { target, state, oauthError, oauthErrorDescription, connectorData } = callbackPayload;
+
+    if (oauthError) {
+      throw new Error(oauthErrorDescription || oauthError);
+    }
 
     if (!target || !state) {
       throw new Error("缺少社交绑定回调参数");

@@ -166,6 +166,7 @@ export async function POST(request: Request) {
     cookieStore.set(getCookieName(target), JSON.stringify({
       state,
       verificationRecordId: verification.verificationRecordId,
+      redirectUri,
     }), {
       httpOnly: true,
       sameSite: "lax",
