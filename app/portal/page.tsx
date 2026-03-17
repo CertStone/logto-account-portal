@@ -129,12 +129,19 @@ export default function PortalPage() {
       return;
     }
 
-    void checkAllServices();
+    const initialTimer = window.setTimeout(() => {
+      void checkAllServices();
+    }, 0);
+
     // 每 60 秒自动刷新一次
     const interval = setInterval(() => {
       void checkAllServices();
     }, 60000);
-    return () => clearInterval(interval);
+
+    return () => {
+      window.clearTimeout(initialTimer);
+      clearInterval(interval);
+    };
   }, [checkAllServices, runtimeServices]);
 
   useEffect(() => {

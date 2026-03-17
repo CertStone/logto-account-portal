@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  defaultLang,
   normalizeLocale,
   readStoredLanguage,
   saveLanguage,
@@ -13,11 +12,7 @@ import {
 const LANGUAGE_CHANGED_EVENT = "account-center-language-changed";
 
 export function useTranslations() {
-  const [language, setLanguageState] = useState<Language>(defaultLang);
-
-  useEffect(() => {
-    setLanguageState(readStoredLanguage());
-  }, []);
+  const [language, setLanguageState] = useState<Language>(() => readStoredLanguage());
 
   useEffect(() => {
     if (typeof window === "undefined") {
