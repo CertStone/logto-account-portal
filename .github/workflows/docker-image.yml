@@ -3,7 +3,7 @@ name: Build and Publish Docker Image
 on:
   push:
     branches:
-      - main
+      - "**"
     tags:
       - "v*"
   workflow_dispatch:
@@ -21,6 +21,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -32,13 +34,30 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Decide whether to publish latest
+        id: latest
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" != refs/tags/* ]]; then
+            echo "enable_latest=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+
+          if git merge-base --is-ancestor "${GITHUB_SHA}" "origin/main"; then
+            echo "enable_latest=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enable_latest=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository_owner }}/logto-account-portal
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest,enable=${{ steps.latest.outputs.enable_latest == 'true' }}
             type=ref,event=tag
             type=sha,prefix=sha-
 
