@@ -50,7 +50,7 @@
     "@types/react-dom": "^19",
     "@vercel/ncc": "^0.38.4",
     "cross-env": "^10.1.0",
-    "eslint": "^9",
+    "eslint": "^10",
     "eslint-config-next": "15.5.12",
     "tailwindcss": "^4",
     "typescript": "^5"
