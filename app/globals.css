@@ -3,7 +3,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* NProgress 載入進度條樣式 */
+
 #nprogress {
   pointer-events: none;
 }
@@ -31,7 +31,7 @@
   transform: rotate(3deg) translate(0px, -4px);
 }
 
-/* 暗色模式下的進度條 */
+
 @media (prefers-color-scheme: dark) {
   #nprogress .bar {
     background: linear-gradient(90deg, #60a5fa, #a78bfa);
@@ -99,12 +99,12 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* 響應式基礎設定 */
+
 * {
   box-sizing: border-box;
 }
 
-/* 防止在行動裝置上輸入時縮放 */
+
 input[type="text"],
 input[type="email"],
 input[type="password"],
@@ -113,13 +113,13 @@ input[type="url"],
 input[type="search"],
 textarea,
 select {
-  font-size: 16px; /* iOS Safari 不會縮放當字體大小 >= 16px */
+  font-size: 16px; 
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
 }
 
-/* 改善觸控體驗 */
+
 button,
 input[type="button"],
 input[type="submit"],
@@ -134,7 +134,7 @@ a:not(.toggle-switch) {
   cursor: pointer;
 }
 
-/* 特別處理表單標籤 */
+
 label[for]:not(.toggle-switch) {
   cursor: pointer;
 }
@@ -144,13 +144,13 @@ input:disabled {
   cursor: not-allowed;
 }
 
-/* 響應式圖片 */
+
 img {
   max-width: 100%;
   height: auto;
 }
 
-/* 強制修正開關樣式 */
+
 .toggle-switch {
   display: inline-flex !important;
   align-items: center !important;

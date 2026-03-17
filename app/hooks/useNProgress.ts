@@ -3,7 +3,7 @@
 import { useCallback } from 'react';
 import NProgress from 'nprogress';
 
-// 配置 NProgress 全域設置
+// 配置 NProgress 的全局选项
 if (typeof window !== 'undefined') {
   NProgress.configure({
     showSpinner: false,
@@ -22,13 +22,12 @@ export const useNProgress = () => {
   return { start, done, set, inc };
 };
 
-// 用於按鈕點擊時的進度條鉤子
+// 用于按钮点击时显示进度条的自定义 Hook
 export const useButtonProgress = () => {
   const { start, done } = useNProgress();
   
   const handleClick = useCallback(() => {
     start();
-    // 可以選擇在操作完成後調用 done()
   }, [start]);
   
   const handleAsyncAction = useCallback(async (action: () => Promise<void>) => {

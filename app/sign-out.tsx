@@ -10,11 +10,11 @@ const SignOut = ({ onSignOut }: Props) => {
   const { start } = useNProgress();
 
   const handleSignOut = async () => {
-    start(); // 立即顯示進度條
+    start(); // 立即显示进度条
     try {
       await onSignOut();
     } finally {
-      // 進度條會在路由變化時自動完成，這裡不需要手動調用 done()
+      // 进度条会在路由变化时自动完成，这里不需要手动调用 done()
     }
   };
 
