@@ -2,7 +2,7 @@
 
 Logto Account Portal is an account center and service portal integrated with [Logto](https://logto.io/), providing profile management, security settings, social account linking, and more. It supports both local development and Docker deployment with a unified and easy-to-manage configuration model.
 
-The project is built with Next.js 15 (App Router), and the frontend UI uses shadcn/ui.
+The project is built with Next.js 16 (App Router), and the frontend UI uses shadcn/ui.
 
 ## 1. Features
 
