@@ -16,6 +16,7 @@ The project is built with Next.js 15 (App Router), and the frontend UI uses shad
 
 ### Service Portal (Portal)
 
+- Can be disabled via config if not needed
 - Config-driven service listing
 - Service category navigation
 - Keyword search
